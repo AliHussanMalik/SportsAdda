@@ -7,10 +7,12 @@ import AuthScreen from './screens/AuthScreen';
 import BookingsScreen from './screens/BookingsScreen';
 import TeamsScreen from './screens/TeamsScreen';
 import CricketLiveModal from './components/CricketLiveModal';
+import LiveScoringConsoleModal from './components/LiveScoringConsoleModal';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState('bookings');
   const [showLiveCricket, setShowLiveCricket] = useState(false);
+  const [showScoringConsole, setShowScoringConsole] = useState(false);
   const { theme, isDark } = useTheme();
 
   const renderScreen = () => {
@@ -37,13 +39,24 @@ function MainApp() {
           <Text style={[styles.countryTag, { color: theme.subText }]}> 🇵🇰 PK</Text>
         </View>
 
-        <TouchableOpacity
-          style={[styles.liveScoreBtn, { backgroundColor: theme.badgeBg, borderColor: theme.accent }]}
-          onPress={() => setShowLiveCricket(true)}
-        >
-          <View style={[styles.liveDot, { backgroundColor: theme.accent }]} />
-          <Text style={[styles.liveScoreText, { color: theme.accent }]}>🏏 Live Scorecard</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {/* Live Scoring Console Button */}
+          <TouchableOpacity
+            style={[styles.liveScoreBtn, { backgroundColor: 'rgba(6, 182, 212, 0.15)', borderColor: '#06b6d4' }]}
+            onPress={() => setShowScoringConsole(true)}
+          >
+            <Text style={[styles.liveScoreText, { color: '#06b6d4' }]}>⚡ Scoring</Text>
+          </TouchableOpacity>
+
+          {/* Live Scorecard RSS Button */}
+          <TouchableOpacity
+            style={[styles.liveScoreBtn, { backgroundColor: theme.badgeBg, borderColor: theme.accent }]}
+            onPress={() => setShowLiveCricket(true)}
+          >
+            <View style={[styles.liveDot, { backgroundColor: theme.accent }]} />
+            <Text style={[styles.liveScoreText, { color: theme.accent }]}>🏏 Live Scores</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Main Screen Body */}
@@ -84,6 +97,9 @@ function MainApp() {
 
       {/* Cricket Live Score Modal */}
       <CricketLiveModal visible={showLiveCricket} onClose={() => setShowLiveCricket(false)} />
+
+      {/* Real-time Conflict-Free Live Scoring Console Modal */}
+      <LiveScoringConsoleModal visible={showScoringConsole} onClose={() => setShowScoringConsole(false)} />
     </SafeAreaView>
   );
 }
@@ -121,7 +137,7 @@ const styles = StyleSheet.create({
   liveScoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1
