@@ -9,12 +9,14 @@ import TeamsScreen from './screens/TeamsScreen';
 import CricketLiveModal from './components/CricketLiveModal';
 import LiveScoringConsoleModal from './components/LiveScoringConsoleModal';
 import SportsStoreModal from './components/SportsStoreModal';
+import TournamentTreeModal from './components/TournamentTreeModal';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState('bookings');
   const [showLiveCricket, setShowLiveCricket] = useState(false);
   const [showScoringConsole, setShowScoringConsole] = useState(false);
   const [showSportsStore, setShowSportsStore] = useState(false);
+  const [showTournaments, setShowTournaments] = useState(false);
   const { theme, isDark } = useTheme();
 
   const renderScreen = () => {
@@ -41,13 +43,21 @@ function MainApp() {
           <Text style={[styles.countryTag, { color: theme.subText }]}> 🇵🇰 PK</Text>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          {/* Tournament Tree Button */}
+          <TouchableOpacity
+            style={[styles.liveScoreBtn, { backgroundColor: 'rgba(139, 92, 246, 0.15)', borderColor: '#8b5cf6' }]}
+            onPress={() => setShowTournaments(true)}
+          >
+            <Text style={[styles.liveScoreText, { color: '#8b5cf6' }]}>🏆 Brackets</Text>
+          </TouchableOpacity>
+
           {/* Sports Store & Ads Button */}
           <TouchableOpacity
             style={[styles.liveScoreBtn, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#f59e0b' }]}
             onPress={() => setShowSportsStore(true)}
           >
-            <Text style={[styles.liveScoreText, { color: '#f59e0b' }]}>🛒 Store & Ads</Text>
+            <Text style={[styles.liveScoreText, { color: '#f59e0b' }]}>🛒 Store</Text>
           </TouchableOpacity>
 
           {/* Live Scoring Console Button */}
@@ -55,7 +65,7 @@ function MainApp() {
             style={[styles.liveScoreBtn, { backgroundColor: 'rgba(6, 182, 212, 0.15)', borderColor: '#06b6d4' }]}
             onPress={() => setShowScoringConsole(true)}
           >
-            <Text style={[styles.liveScoreText, { color: '#06b6d4' }]}>⚡ Scoring</Text>
+            <Text style={[styles.liveScoreText, { color: '#06b6d4' }]}>⚡ Score</Text>
           </TouchableOpacity>
 
           {/* Live Scorecard Button */}
@@ -64,7 +74,7 @@ function MainApp() {
             onPress={() => setShowLiveCricket(true)}
           >
             <View style={[styles.liveDot, { backgroundColor: theme.accent }]} />
-            <Text style={[styles.liveScoreText, { color: theme.accent }]}>🏏 Scores</Text>
+            <Text style={[styles.liveScoreText, { color: theme.accent }]}>🏏 RSS</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -113,6 +123,9 @@ function MainApp() {
 
       {/* Sports Center Sponsored Ads & Online Delivery Store Modal */}
       <SportsStoreModal visible={showSportsStore} onClose={() => setShowSportsStore(false)} />
+
+      {/* Tournament Tree Graph & Organizer Rating Modal */}
+      <TournamentTreeModal visible={showTournaments} onClose={() => setShowTournaments(false)} />
     </SafeAreaView>
   );
 }
@@ -134,35 +147,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 12,
     borderBottomWidth: 1
   },
   brandTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '900',
     letterSpacing: 0.5
   },
   countryTag: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700'
   },
   liveScoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 16,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 14,
     borderWidth: 1
   },
   liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 4
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginRight: 3
   },
   liveScoreText: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800'
   },
   content: {
@@ -173,7 +186,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingVertical: 8,
     paddingBottom: 16,
-    justifyContent: 'space-around'
+    justify.content: 'space-around'
   },
   navItem: {
     alignItems: 'center',
