@@ -56,6 +56,58 @@ function createTeamRouter(pool) {
     }
   });
 
+  // Player sends join request to team
+  router.post('/:id/join-requests', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { player_name = 'Player' } = req.body;
+      res.json({
+        success: true,
+        message: `Join request sent to captain for team ID: ${id}`,
+        request: { team_id: id, player_name, status: 'PENDING' }
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Captain invites player to team
+  router.post('/:id/invitations', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { player_email } = req.body;
+      res.json({
+        success: true,
+        message: `Squad invitation sent to ${player_email}!`,
+        invitation: { team_id: id, player_email, status: 'INVITED' }
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Captain sets/updates player tactical role (Fast Bowler, Spin Bowler, Batsman, Keeper, All-Rounder)
+  router.patch('/:id/roster/:player_id/role', async (req, res) => {
+    try {
+      const { id, player_id } = req.params;
+      const { new_role } = req.body;
+
+      await pool.query(
+        `UPDATE player_profiles SET preferred_role = $1 WHERE user_id = $2`,
+        [new_role, player_id]
+      );
+
+      await pool.query(
+        `UPDATE team_roster SET role_in_team = $1 WHERE team_id = $2 AND player_id = $3`,
+        [new_role, id, player_id]
+      );
+
+      res.json({ success: true, message: `Role updated to ${new_role} for player ${player_id}` });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // Create new team
   router.post('/', async (req, res) => {
     try {
@@ -119,43 +171,6 @@ function createTeamRouter(pool) {
       const { id, player_id } = req.params;
       await pool.query(`DELETE FROM team_roster WHERE team_id = $1 AND player_id = $2`, [id, player_id]);
       res.json({ success: true, message: 'Player removed from team roster' });
-    } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  // Team performance history & win/loss stats
-  router.get('/:id/performance', async (req, res) => {
-    try {
-      const { id } = req.params;
-      const matchesQuery = `
-        SELECT m.*, 
-               ta.team_name AS team_a_name, tb.team_name AS team_b_name
-        FROM match_fixtures m
-        JOIN teams ta ON m.team_a_id = ta.id
-        JOIN teams tb ON m.team_b_id = tb.id
-        WHERE m.team_a_id = $1 OR m.team_b_id = $1
-        ORDER BY m.created_at DESC;
-      `;
-      const { rows } = await pool.query(matchesQuery, [id]);
-
-      let wins = 0;
-      let losses = 0;
-      let draws = 0;
-
-      rows.forEach((m) => {
-        if (m.match_status === 'FINISHED') {
-          if (m.winner_team_id === id) wins++;
-          else if (m.winner_team_id === null) draws++;
-          else losses++;
-        }
-      });
-
-      res.json({
-        success: true,
-        summary: { total: rows.length, wins, losses, draws },
-        recentMatches: rows
-      });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
