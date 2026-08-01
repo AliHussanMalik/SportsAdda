@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme, Alert } from 'react-native';
+import { useColorScheme, Appearance, Alert } from 'react-native';
 
 const ThemeContext = createContext();
 
@@ -34,19 +34,35 @@ export const LIGHT_THEME = {
 };
 
 export function ThemeProvider({ children }) {
-  const systemColorScheme = useColorScheme(); // Detects mobile OS setting ('dark' or 'light')
+  const hookColorScheme = useColorScheme();
+  const [systemScheme, setSystemScheme] = useState(Appearance.getColorScheme() || hookColorScheme || 'light');
   const [themeMode, setThemeMode] = useState('system'); // 'dark' | 'light' | 'system'
 
-  // Determine active colors based on themeMode and system preference
-  const isDark =
-    themeMode === 'system' ? systemColorScheme === 'dark' : themeMode === 'dark';
+  // Listen to OS System Theme changes dynamically
+  useEffect(() => {
+    const current = Appearance.getColorScheme() || hookColorScheme || 'light';
+    setSystemScheme(current);
+
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      if (colorScheme) {
+        setSystemScheme(colorScheme);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [hookColorScheme]);
+
+  // Determine active theme
+  const activeScheme = themeMode === 'system' ? systemScheme : themeMode;
+  const isDark = activeScheme === 'dark';
   const theme = isDark ? DARK_THEME : LIGHT_THEME;
 
   const changeThemeMode = (newMode) => {
     if (newMode === 'system') {
+      const activeOsMode = (systemScheme || 'light').toUpperCase();
       Alert.alert(
         '📱 System Display Preference',
-        `SportsAdda theme has been set to sync with your device system settings (${systemColorScheme === 'dark' ? 'Dark Mode Active' : 'Light Mode Active'}).`,
+        `SportsAdda theme has been set to sync with your device OS settings (${activeOsMode} MODE ACTIVE).`,
         [{ text: 'OK' }]
       );
     }
@@ -58,7 +74,7 @@ export function ThemeProvider({ children }) {
       value={{
         theme,
         themeMode,
-        systemColorScheme,
+        systemColorScheme: systemScheme,
         isDark,
         setThemeMode: changeThemeMode
       }}
