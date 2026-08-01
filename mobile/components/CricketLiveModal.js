@@ -7,21 +7,43 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Share,
+  Alert
 } from 'react-native';
+import { API_BASE } from '../config';
+import { useTheme } from '../context/ThemeContext';
 
 export default function CricketLiveModal({ visible, onClose }) {
+  const { theme } = useTheme();
+
+  const [feedMode, setFeedMode] = useState('LOCAL'); // 'LOCAL' or 'INTERNATIONAL'
   const [matches, setMatches] = useState([]);
+  const [communityMatches, setCommunityMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState('');
 
   const fetchLiveScores = async () => {
     try {
-      const res = await fetch('http://static.espncricinfo.com/rss/livescores.xml');
-      const xmlText = await res.text();
-      const parsedMatches = parseCricinfoRss(xmlText);
-      setMatches(parsedMatches);
+      // 1. Fetch International/PSL Feed from Backend Proxy JSON
+      const res = await fetch(`${API_BASE}/scoring/live-cricket-feed`, {
+        headers: { 'Bypass-Tunnel-Reminder': 'true' }
+      });
+      const data = await res.json();
+      if (data.success && data.matches) {
+        setMatches(data.matches);
+      }
+
+      // 2. Fetch Local Community Broadcasted Matches
+      const commRes = await fetch(`${API_BASE}/scoring/broadcasts/community`, {
+        headers: { 'Bypass-Tunnel-Reminder': 'true' }
+      });
+      const commData = await commRes.json();
+      if (commData.success && commData.communityMatches) {
+        setCommunityMatches(commData.communityMatches);
+      }
+
       const now = new Date();
       setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (e) {
@@ -39,106 +61,182 @@ export default function CricketLiveModal({ visible, onClose }) {
     }
   }, [visible]);
 
-  const parseCricinfoRss = (xmlString) => {
-    const items = [];
-    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    let match;
-
-    while ((match = itemRegex.exec(xmlString)) !== null) {
-      const itemContent = match[1];
-      const titleMatch = /<title>(.*?)<\/title>/.exec(itemContent);
-      const linkMatch = /<link>(.*?)<\/link>/.exec(itemContent);
-
-      if (titleMatch && titleMatch[1]) {
-        const rawTitle = titleMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-        const link = linkMatch ? linkMatch[1].trim() : '';
-
-        // Check if match features Pakistan or PSL
-        const isPak = /Pakistan|PSL|Karachi|Lahore|Islamabad|Peshawar|Quetta|Multan|Rawalpindi/i.test(rawTitle);
-
-        items.push({
-          id: Math.random().toString(),
-          title: rawTitle,
-          link,
-          isPak,
-          isLive: rawTitle.includes('*') || rawTitle.includes('/')
-        });
-      }
+  const handleShareMatch = async (matchTitle, scoreStr, shareUrl) => {
+    try {
+      await Share.share({
+        message: `🏏 SportsAdda Live Scoreboard:\n${matchTitle}\nScore: ${scoreStr}\nWatch Live Updates: ${shareUrl || 'https://sportsadda.app'}`
+      });
+    } catch (error) {
+      Alert.alert('Share', matchTitle);
     }
-
-    return items;
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { backgroundColor: theme.bg, borderColor: theme.accent }]}>
           {/* Header */}
           <View style={styles.header}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{ fontSize: 24, marginRight: 8 }}>🏏</Text>
               <View>
-                <Text style={styles.title}>Cricket Live Scorecard</Text>
-                <Text style={styles.subtitle}>
-                  {lastUpdated ? `Updated: ${lastUpdated}` : 'Real-time ESPNCricinfo Feed'}
+                <Text style={[styles.title, { color: theme.text }]}>Live Cricket & Community Broadcasts</Text>
+                <Text style={[styles.subtitle, { color: theme.subText }]}>
+                  {lastUpdated ? `Updated: ${lastUpdated}` : 'Real-time SportsAdda Feed'}
                 </Text>
               </View>
             </View>
 
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: theme.cardBg }]}>
+              <Text style={[styles.closeBtnText, { color: theme.subText }]}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Pakistan Flag / Live Status Banner */}
-          <View style={styles.pakBanner}>
-            <Text style={styles.pakBannerText}>🇵🇰 Pakistan & Global Live Match Updates</Text>
+          {/* Feed Mode Switcher Tabs */}
+          <View style={[styles.tabBar, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+            <TouchableOpacity
+              style={[styles.tabBtn, feedMode === 'LOCAL' && { backgroundColor: theme.accent }]}
+              onPress={() => setFeedMode('LOCAL')}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: theme.subText },
+                  feedMode === 'LOCAL' && { color: '#000', fontWeight: '900' }
+                ]}
+              >
+                📢 Local Pakistan Matches
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabBtn, feedMode === 'INTERNATIONAL' && { backgroundColor: theme.accent }]}
+              onPress={() => setFeedMode('INTERNATIONAL')}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: theme.subText },
+                  feedMode === 'INTERNATIONAL' && { color: '#000', fontWeight: '900' }
+                ]}
+              >
+                🌐 International & PSL
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Matches List */}
+          {/* Body Content */}
           {loading ? (
-            <ActivityIndicator size="large" color="#10b981" style={{ marginVertical: 40 }} />
+            <ActivityIndicator size="large" color={theme.accent} style={{ marginVertical: 40 }} />
           ) : (
             <ScrollView
               contentContainerStyle={{ paddingBottom: 20 }}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchLiveScores(); }} colors={['#10b981']} />}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => {
+                    setRefreshing(true);
+                    fetchLiveScores();
+                  }}
+                  colors={[theme.accent]}
+                />
+              }
             >
-              {matches.length === 0 ? (
-                <Text style={styles.emptyText}>No live matches right now. Pull down to refresh!</Text>
-              ) : (
-                matches.map((m) => (
-                  <View key={m.id} style={[styles.matchCard, m.isPak && styles.pakCard]}>
-                    <View style={styles.matchCardHeader}>
-                      <View style={styles.badgeRow}>
-                        {m.isLive ? (
-                          <View style={styles.liveBadge}>
-                            <View style={styles.liveDot} />
-                            <Text style={styles.liveBadgeText}>LIVE</Text>
-                          </View>
-                        ) : (
-                          <View style={styles.scheduledBadge}>
-                            <Text style={styles.scheduledBadgeText}>FIXTURE</Text>
-                          </View>
-                        )}
-
-                        {m.isPak && (
-                          <View style={styles.pakTag}>
-                            <Text style={styles.pakTagText}>🇵🇰 PAKISTAN MATCH</Text>
-                          </View>
-                        )}
+              {feedMode === 'LOCAL' ? (
+                /* Local Community Matches Broadcasted by Amateur Teams */
+                <View>
+                  {communityMatches.map((m) => (
+                    <View
+                      key={m.id}
+                      style={[styles.matchCard, styles.localMatchCard, { backgroundColor: theme.cardBg, borderColor: theme.accent }]}
+                    >
+                      <View style={styles.matchCardHeader}>
+                        <View style={styles.liveBadge}>
+                          <View style={styles.liveDot} />
+                          <Text style={styles.liveBadgeText}>LIVE BROADCAST 🔴</Text>
+                        </View>
+                        <Text style={[styles.venueText, { color: theme.subText }]}>{m.venue}</Text>
                       </View>
-                    </View>
 
-                    <Text style={styles.matchTitle}>{m.title}</Text>
-                  </View>
-                ))
+                      <View style={styles.localScoreRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.teamNameText, { color: theme.text }]}>{m.teamA}</Text>
+                          <Text style={[styles.scoreTextBig, { color: theme.accent }]}>
+                            {m.scoreA} <Text style={{ fontSize: 12, color: theme.subText }}>({m.oversA} ov)</Text>
+                          </Text>
+                        </View>
+
+                        <Text style={[styles.vsText, { color: theme.subText }]}>VS</Text>
+
+                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                          <Text style={[styles.teamNameText, { color: theme.text }]}>{m.teamB}</Text>
+                          <Text style={[styles.scoreTextBig, { color: theme.text }]}>
+                            {m.scoreB} <Text style={{ fontSize: 12, color: theme.subText }}>({m.oversB || m.time} ov)</Text>
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Share Scorecard Button */}
+                      <TouchableOpacity
+                        style={[styles.shareBtn, { backgroundColor: theme.accent }]}
+                        onPress={() => handleShareMatch(`${m.teamA} vs ${m.teamB}`, `${m.scoreA} vs ${m.scoreB}`, m.shareUrl)}
+                      >
+                        <Text style={styles.shareBtnText}>📢 Share Live Scorecard Link</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                /* International & PSL Matches */
+                <View>
+                  {matches.map((m) => (
+                    <View
+                      key={m.id}
+                      style={[
+                        styles.matchCard,
+                        { backgroundColor: theme.cardBg, borderColor: theme.border },
+                        m.isPak && { borderColor: theme.accent, backgroundColor: theme.badgeBg }
+                      ]}
+                    >
+                      <View style={styles.matchCardHeader}>
+                        <View style={styles.badgeRow}>
+                          {m.isLive ? (
+                            <View style={styles.liveBadge}>
+                              <View style={styles.liveDot} />
+                              <Text style={styles.liveBadgeText}>LIVE</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.scheduledBadge}>
+                              <Text style={styles.scheduledBadgeText}>FIXTURE</Text>
+                            </View>
+                          )}
+
+                          {m.isPak && (
+                            <View style={[styles.pakTag, { backgroundColor: theme.badgeBg }]}>
+                              <Text style={[styles.pakTagText, { color: theme.accent }]}>🇵🇰 PAKISTAN MATCH</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <TouchableOpacity
+                          onPress={() => handleShareMatch(m.title, 'Live Score', m.link)}
+                          style={[styles.miniShareBtn, { backgroundColor: theme.border }]}
+                        >
+                          <Text style={{ fontSize: 11 }}>🔗 Share</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <Text style={[styles.matchTitle, { color: theme.text }]}>{m.title}</Text>
+                    </View>
+                  ))}
+                </View>
               )}
             </ScrollView>
           )}
 
-          {/* Refresh Button Footer */}
-          <TouchableOpacity style={styles.refreshBtn} onPress={fetchLiveScores}>
-            <Text style={styles.refreshBtnText}>🔄 Refresh Live Scores</Text>
+          {/* Refresh Footer */}
+          <TouchableOpacity style={[styles.refreshBtn, { backgroundColor: theme.accent }]} onPress={fetchLiveScores}>
+            <Text style={styles.refreshBtnText}>🔄 Refresh Live Broadcasts</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -149,17 +247,15 @@ export default function CricketLiveModal({ visible, onClose }) {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end'
   },
   modalContent: {
-    backgroundColor: '#0d1322',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '85%',
     padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)'
+    borderWidth: 1
   },
   header: {
     flexDirection: 'row',
@@ -168,12 +264,10 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   title: {
-    color: '#fff',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800'
   },
   subtitle: {
-    color: '#9ca3af',
     fontSize: 11,
     marginTop: 2
   },
@@ -181,41 +275,38 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#1f2937',
     alignItems: 'center',
     justifyContent: 'center'
   },
   closeBtnText: {
-    color: '#9ca3af',
     fontSize: 16,
     fontWeight: 'bold'
   },
-  pakBanner: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)'
+  tabBar: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 14,
+    borderWidth: 1
   },
-  pakBannerText: {
-    color: '#10b981',
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center'
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8
+  },
+  tabText: {
+    fontSize: 11,
+    fontWeight: '700'
   },
   matchCard: {
-    backgroundColor: '#111827',
     borderRadius: 14,
     padding: 14,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)'
+    borderWidth: 1
   },
-  pakCard: {
-    borderColor: '#10b981',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)'
+  localMatchCard: {
+    padding: 16
   },
   matchCardHeader: {
     flexDirection: 'row',
@@ -260,30 +351,60 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   pakTag: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8
   },
   pakTagText: {
-    color: '#10b981',
     fontSize: 10,
     fontWeight: '800'
   },
+  venueText: {
+    fontSize: 10,
+    fontWeight: '600'
+  },
   matchTitle: {
-    color: '#fff',
     fontSize: 15,
     fontWeight: '700',
     lineHeight: 22
   },
-  emptyText: {
-    color: '#9ca3af',
-    textAlign: 'center',
-    marginTop: 30,
-    fontSize: 14
+  localScoreRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 10
+  },
+  teamNameText: {
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  scoreTextBig: {
+    fontSize: 22,
+    fontWeight: '900',
+    marginTop: 2
+  },
+  vsText: {
+    fontSize: 12,
+    fontWeight: '900',
+    marginHorizontal: 10
+  },
+  shareBtn: {
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10
+  },
+  shareBtnText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 12
+  },
+  miniShareBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8
   },
   refreshBtn: {
-    backgroundColor: '#10b981',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
