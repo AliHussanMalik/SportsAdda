@@ -8,11 +8,13 @@ import BookingsScreen from './screens/BookingsScreen';
 import TeamsScreen from './screens/TeamsScreen';
 import CricketLiveModal from './components/CricketLiveModal';
 import LiveScoringConsoleModal from './components/LiveScoringConsoleModal';
+import SportsStoreModal from './components/SportsStoreModal';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState('bookings');
   const [showLiveCricket, setShowLiveCricket] = useState(false);
   const [showScoringConsole, setShowScoringConsole] = useState(false);
+  const [showSportsStore, setShowSportsStore] = useState(false);
   const { theme, isDark } = useTheme();
 
   const renderScreen = () => {
@@ -40,6 +42,14 @@ function MainApp() {
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {/* Sports Store & Ads Button */}
+          <TouchableOpacity
+            style={[styles.liveScoreBtn, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#f59e0b' }]}
+            onPress={() => setShowSportsStore(true)}
+          >
+            <Text style={[styles.liveScoreText, { color: '#f59e0b' }]}>🛒 Store & Ads</Text>
+          </TouchableOpacity>
+
           {/* Live Scoring Console Button */}
           <TouchableOpacity
             style={[styles.liveScoreBtn, { backgroundColor: 'rgba(6, 182, 212, 0.15)', borderColor: '#06b6d4' }]}
@@ -48,13 +58,13 @@ function MainApp() {
             <Text style={[styles.liveScoreText, { color: '#06b6d4' }]}>⚡ Scoring</Text>
           </TouchableOpacity>
 
-          {/* Live Scorecard RSS Button */}
+          {/* Live Scorecard Button */}
           <TouchableOpacity
             style={[styles.liveScoreBtn, { backgroundColor: theme.badgeBg, borderColor: theme.accent }]}
             onPress={() => setShowLiveCricket(true)}
           >
             <View style={[styles.liveDot, { backgroundColor: theme.accent }]} />
-            <Text style={[styles.liveScoreText, { color: theme.accent }]}>🏏 Live Scores</Text>
+            <Text style={[styles.liveScoreText, { color: theme.accent }]}>🏏 Scores</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -100,6 +110,9 @@ function MainApp() {
 
       {/* Real-time Conflict-Free Live Scoring Console Modal */}
       <LiveScoringConsoleModal visible={showScoringConsole} onClose={() => setShowScoringConsole(false)} />
+
+      {/* Sports Center Sponsored Ads & Online Delivery Store Modal */}
+      <SportsStoreModal visible={showSportsStore} onClose={() => setShowSportsStore(false)} />
     </SafeAreaView>
   );
 }
@@ -121,35 +134,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     borderBottomWidth: 1
   },
   brandTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
     letterSpacing: 0.5
   },
   countryTag: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700'
   },
   liveScoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 16,
     borderWidth: 1
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 6
+    marginRight: 4
   },
   liveScoreText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800'
   },
   content: {
