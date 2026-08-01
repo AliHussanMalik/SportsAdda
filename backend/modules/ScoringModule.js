@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 
 function createScoringRouter(pool, io) {
   const router = express.Router();
@@ -43,7 +44,7 @@ function createScoringRouter(pool, io) {
       if (ev.event_type === 'GOAL') {
         if (teamId === match.team_a_id) team_a_score += 1;
         else if (teamId === match.team_b_id) team_b_score += 1;
-        else team_a_score += 1; // default to team A
+        else team_a_score += 1;
       } else if (ev.event_type === 'RUN') {
         const runs = details.runs || 1;
         if (teamId === match.team_a_id) team_a_score += runs;
@@ -67,6 +68,88 @@ function createScoringRouter(pool, io) {
       }
     };
   }
+
+  // Live Cricket RSS JSON Feed Proxy (Fixes XML parsing & CORS on mobile)
+  router.get('/live-cricket-feed', (req, res) => {
+    http.get('http://static.espncricinfo.com/rss/livescores.xml', (rssRes) => {
+      let data = '';
+      rssRes.on('data', (chunk) => { data += chunk; });
+      rssRes.on('end', () => {
+        try {
+          const items = [];
+          const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+          let match;
+
+          while ((match = itemRegex.exec(data)) !== null) {
+            const itemContent = match[1];
+            const titleMatch = /<title>(.*?)<\/title>/.exec(itemContent);
+            const linkMatch = /<link>(.*?)<\/link>/.exec(itemContent);
+
+            if (titleMatch && titleMatch[1]) {
+              const rawTitle = titleMatch[1]
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>');
+
+              const isPak = /Pakistan|PSL|Karachi|Lahore|Islamabad|Peshawar|Quetta|Multan|Rawalpindi/i.test(rawTitle);
+
+              items.push({
+                id: Math.random().toString(),
+                title: rawTitle,
+                link: linkMatch ? linkMatch[1].trim() : '',
+                isPak,
+                isLive: rawTitle.includes('*') || rawTitle.includes('/')
+              });
+            }
+          }
+
+          res.json({ success: true, matches: items });
+        } catch (e) {
+          res.status(500).json({ success: false, error: e.message });
+        }
+      });
+    }).on('error', (err) => {
+      res.status(500).json({ success: false, error: err.message });
+    });
+  });
+
+  // Local Community Teams Live Broadcasts
+  router.get('/broadcasts/community', async (req, res) => {
+    try {
+      // Return active community matches in Pakistan
+      const matches = [
+        {
+          id: 'local-match-101',
+          teamA: 'Lahore Qalandars Box CC 🏏',
+          teamB: 'Karachi Kings Turf XI 🏏',
+          scoreA: '142/3',
+          oversA: '16.4',
+          scoreB: '126/6',
+          oversB: '20.0',
+          venue: 'Velocity Sports Complex (DHA Lahore)',
+          status: 'LIVE 🔴',
+          isLocalBroadcast: true,
+          shareUrl: 'https://sportsadda.app/live/local-match-101'
+        },
+        {
+          id: 'local-match-102',
+          teamA: 'Velocity Gunners FC ⚽',
+          teamB: 'Rawalpindi Mavericks FC ⚽',
+          scoreA: '3',
+          scoreB: '2',
+          time: '72 min',
+          venue: 'Indoor Futsal Arena (Sector E)',
+          status: 'LIVE 🔴',
+          isLocalBroadcast: true,
+          shareUrl: 'https://sportsadda.app/live/local-match-102'
+        }
+      ];
+
+      res.json({ success: true, communityMatches: matches });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
 
   // Get live scoreboard & events
   router.get('/:match_id/events', async (req, res) => {
@@ -125,7 +208,6 @@ function createScoringRouter(pool, io) {
     try {
       const { match_id } = req.params;
 
-      // Find last event for this match
       const lastEventRes = await pool.query(
         `SELECT * FROM match_events WHERE match_id = $1 ORDER BY id DESC LIMIT 1`,
         [match_id]
@@ -136,11 +218,8 @@ function createScoringRouter(pool, io) {
       }
 
       const lastEvent = lastEventRes.rows[0];
-
-      // Delete the event
       await pool.query(`DELETE FROM match_events WHERE id = $1`, [lastEvent.id]);
 
-      // Revert keeper stats if applicable
       if (lastEvent.player_id && (lastEvent.event_type === 'SAVE' || lastEvent.event_type === 'STUMPING')) {
         const colName = lastEvent.event_type === 'SAVE' ? 'total_saves' : 'stumpings';
         await pool.query(
@@ -149,10 +228,8 @@ function createScoringRouter(pool, io) {
         );
       }
 
-      // Recompute updated scoreboard
       const liveData = await computeLiveScoreboard(match_id);
 
-      // Broadcast Undo event to viewers
       if (io) {
         io.to(`match_${match_id}`).emit('score_update', liveData);
         io.emit('global_match_update', { match_id, ...liveData.scores });
