@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "SportsAdda Mobile",
+    "slug": "sportsadda-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#090d16"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "backgroundColor": "#090d16",
+      "usesCleartextTraffic": true
+    }
+  }
+}
