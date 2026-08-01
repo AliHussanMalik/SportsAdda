@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { API_BASE } from '../config';
+import { useTheme } from '../context/ThemeContext';
+import ThemeSelector from '../components/ThemeSelector';
 
 export default function AuthScreen() {
+  const { theme } = useTheme();
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,29 +56,32 @@ export default function AuthScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      <Text style={styles.title}>👤 Player Profiles</Text>
-      <Text style={styles.subtitle}>Specialized Profile Tiers & Role Badges</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.bg }]} contentContainerStyle={{ padding: 16 }}>
+      <Text style={[styles.title, { color: theme.text }]}>👤 Player Profiles & Settings</Text>
+      <Text style={[styles.subtitle, { color: theme.subText }]}>Specialized Profile Tiers & Theme Preferences</Text>
+
+      {/* Theme Switcher Widget */}
+      <ThemeSelector />
 
       {loading ? (
-        <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 20 }} />
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={fetchProfiles}>
+          <TouchableOpacity style={[styles.retryBtn, { backgroundColor: theme.accent }]} onPress={fetchProfiles}>
             <Text style={styles.retryText}>🔄 Retry Connection</Text>
           </TouchableOpacity>
         </View>
       ) : (
         profiles.map((p) => (
-          <View key={p.user_id} style={styles.card}>
+          <View key={p.user_id} style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
             <View style={styles.cardHeader}>
-              <View style={styles.avatar}>
+              <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
                 <Text style={styles.avatarText}>#{p.jersey_number || 0}</Text>
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.name}>{p.display_name}</Text>
-                <Text style={styles.sportRole}>{p.primary_sport} • {p.preferred_role}</Text>
+                <Text style={[styles.name, { color: theme.text }]}>{p.display_name}</Text>
+                <Text style={[styles.sportRole, { color: theme.subText }]}>{p.primary_sport} • {p.preferred_role}</Text>
               </View>
 
               <TouchableOpacity
@@ -99,16 +105,16 @@ export default function AuthScreen() {
                 <Text style={styles.keeperBoxTitle}>🧤 Keeper Performance Metrics</Text>
                 <View style={styles.statsRow}>
                   <View style={styles.statCol}>
-                    <Text style={styles.statVal}>{p.total_saves || 0}</Text>
-                    <Text style={styles.statLbl}>Saves</Text>
+                    <Text style={[styles.statVal, { color: theme.text }]}>{p.total_saves || 0}</Text>
+                    <Text style={[styles.statLbl, { color: theme.subText }]}>Saves</Text>
                   </View>
                   <View style={styles.statCol}>
-                    <Text style={styles.statVal}>{p.clean_sheets || 0}</Text>
-                    <Text style={styles.statLbl}>Clean Sheets</Text>
+                    <Text style={[styles.statVal, { color: theme.text }]}>{p.clean_sheets || 0}</Text>
+                    <Text style={[styles.statLbl, { color: theme.subText }]}>Clean Sheets</Text>
                   </View>
                   <View style={styles.statCol}>
-                    <Text style={styles.statVal}>{p.stumpings || p.penalties_saved || 0}</Text>
-                    <Text style={styles.statLbl}>{p.keeper_type === 'WICKETKEEPER' ? 'Stumpings' : 'Penalties'}</Text>
+                    <Text style={[styles.statVal, { color: theme.text }]}>{p.stumpings || p.penalties_saved || 0}</Text>
+                    <Text style={[styles.statLbl, { color: theme.subText }]}>{p.keeper_type === 'WICKETKEEPER' ? 'Stumpings' : 'Penalties'}</Text>
                   </View>
                 </View>
               </View>
@@ -121,29 +127,26 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#090d16' },
-  title: { fontSize: 24, fontWeight: '800', color: '#fff' },
-  subtitle: { fontSize: 13, color: '#9ca3af', marginBottom: 16 },
+  container: { flex: 1 },
+  title: { fontSize: 24, fontWeight: '800' },
+  subtitle: { fontSize: 13, marginBottom: 16 },
   card: {
-    backgroundColor: '#111827',
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)'
+    borderWidth: 1
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center' },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#10b981',
     alignItems: 'center',
     justifyContent: 'center'
   },
   avatarText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  name: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  sportRole: { color: '#9ca3af', fontSize: 12, marginTop: 2 },
+  name: { fontSize: 16, fontWeight: '700' },
+  sportRole: { fontSize: 12, marginTop: 2 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   badgePro: { backgroundColor: '#f59e0b' },
   badgeFree: { backgroundColor: '#374151' },
@@ -159,10 +162,10 @@ const styles = StyleSheet.create({
   keeperBoxTitle: { color: '#22d3ee', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   statCol: { alignItems: 'center' },
-  statVal: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  statLbl: { color: '#9ca3af', fontSize: 10 },
+  statVal: { fontSize: 16, fontWeight: '800' },
+  statLbl: { fontSize: 10 },
   errorContainer: { alignItems: 'center', marginTop: 40, padding: 16 },
   errorText: { color: '#ef4444', fontSize: 14, fontWeight: '600', marginBottom: 12, textAlign: 'center' },
-  retryBtn: { backgroundColor: '#10b981', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  retryBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
   retryText: { color: '#fff', fontWeight: '700', fontSize: 13 }
 });

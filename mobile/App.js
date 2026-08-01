@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Platform, StatusBar as RNStatusBar } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import AuthScreen from './screens/AuthScreen';
 import BookingsScreen from './screens/BookingsScreen';
 import TeamsScreen from './screens/TeamsScreen';
 import CricketLiveModal from './components/CricketLiveModal';
 
-export default function App() {
+function MainApp() {
   const [activeTab, setActiveTab] = useState('bookings');
   const [showLiveCricket, setShowLiveCricket] = useState(false);
+  const { theme, isDark } = useTheme();
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -25,19 +27,22 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      {/* Top Header */}
-      <View style={styles.headerBar}>
+      {/* Top Header Bar */}
+      <View style={[styles.headerBar, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={styles.brandTitle}>SportsAdda</Text>
-          <Text style={styles.countryTag}> 🇵🇰 PK</Text>
+          <Text style={[styles.brandTitle, { color: theme.text }]}>SportsAdda</Text>
+          <Text style={[styles.countryTag, { color: theme.subText }]}> 🇵🇰 PK</Text>
         </View>
 
-        <TouchableOpacity style={styles.liveScoreBtn} onPress={() => setShowLiveCricket(true)}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveScoreText}>🏏 Live Scorecard</Text>
+        <TouchableOpacity
+          style={[styles.liveScoreBtn, { backgroundColor: theme.badgeBg, borderColor: theme.accent }]}
+          onPress={() => setShowLiveCricket(true)}
+        >
+          <View style={[styles.liveDot, { backgroundColor: theme.accent }]} />
+          <Text style={[styles.liveScoreText, { color: theme.accent }]}>🏏 Live Scorecard</Text>
         </TouchableOpacity>
       </View>
 
@@ -45,29 +50,35 @@ export default function App() {
       <View style={styles.content}>{renderScreen()}</View>
 
       {/* Bottom Navigation Bar */}
-      <View style={styles.navBar}>
+      <View style={[styles.navBar, { backgroundColor: theme.navBg, borderTopColor: theme.border }]}>
         <TouchableOpacity
-          style={[styles.navItem, activeTab === 'profiles' && styles.activeNavItem]}
+          style={[styles.navItem, activeTab === 'profiles' && { backgroundColor: theme.badgeBg }]}
           onPress={() => setActiveTab('profiles')}
         >
           <Text style={styles.navIcon}>👤</Text>
-          <Text style={[styles.navLabel, activeTab === 'profiles' && styles.activeNavLabel]}>Profiles</Text>
+          <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'profiles' && { color: theme.accent }]}>
+            Profiles
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.navItem, activeTab === 'bookings' && styles.activeNavItem]}
+          style={[styles.navItem, activeTab === 'bookings' && { backgroundColor: theme.badgeBg }]}
           onPress={() => setActiveTab('bookings')}
         >
           <Text style={styles.navIcon}>📅</Text>
-          <Text style={[styles.navLabel, activeTab === 'bookings' && styles.activeNavLabel]}>Bookings</Text>
+          <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'bookings' && { color: theme.accent }]}>
+            Bookings
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.navItem, activeTab === 'teams' && styles.activeNavItem]}
+          style={[styles.navItem, activeTab === 'teams' && { backgroundColor: theme.badgeBg }]}
           onPress={() => setActiveTab('teams')}
         >
           <Text style={styles.navIcon}>🛡️</Text>
-          <Text style={[styles.navLabel, activeTab === 'teams' && styles.activeNavLabel]}>Teams</Text>
+          <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'teams' && { color: theme.accent }]}>
+            Teams
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -77,10 +88,17 @@ export default function App() {
   );
 }
 
+export default function App() {
+  return (
+    <ThemeProvider>
+      <MainApp />
+    </ThemeProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090d16',
     paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0
   },
   headerBar: {
@@ -89,12 +107,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#0d1322',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)'
+    borderBottomWidth: 1
   },
   brandTitle: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 0.5
@@ -106,22 +121,18 @@ const styles = StyleSheet.create({
   liveScoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)'
+    borderWidth: 1
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#10b981',
     marginRight: 6
   },
   liveScoreText: {
-    color: '#10b981',
     fontSize: 11,
     fontWeight: '800'
   },
@@ -130,9 +141,7 @@ const styles = StyleSheet.create({
   },
   navBar: {
     flexDirection: 'row',
-    backgroundColor: '#111827',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
     paddingVertical: 8,
     paddingBottom: 16,
     justifyContent: 'space-around'
@@ -143,19 +152,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12
   },
-  activeNavItem: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)'
-  },
   navIcon: {
     fontSize: 20
   },
   navLabel: {
-    color: '#6b7280',
     fontSize: 11,
     fontWeight: '700',
     marginTop: 2
-  },
-  activeNavLabel: {
-    color: '#10b981'
   }
 });
