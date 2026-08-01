@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingVertical: 8,
     paddingBottom: 16,
-    justify.content: 'space-around'
+    justifyContent: 'space-around'
   },
   navItem: {
     alignItems: 'center',
