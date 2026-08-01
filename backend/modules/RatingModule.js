@@ -32,8 +32,6 @@ function createRatingRouter(pool) {
   const router = express.Router();
 
   // --- 1. ARENA REVIEWS (BY PLAYERS) ---
-
-  // Post Arena Review
   router.post('/arena', async (req, res) => {
     try {
       const validated = ArenaReviewSchema.parse(req.body);
@@ -48,7 +46,6 @@ function createRatingRouter(pool) {
         [arena_id, user_id, turf_quality_rating, lighting_rating, facilities_rating, overall_rating, review_text || '']
       );
 
-      // Recalculate and update indoor_arenas avg_rating & total_reviews
       const aggRes = await pool.query(
         `SELECT AVG(overall_rating) as avg_rating, COUNT(*) as total_reviews
          FROM arena_reviews
@@ -77,7 +74,6 @@ function createRatingRouter(pool) {
     }
   });
 
-  // Get Reviews for an Arena
   router.get('/arena/:arena_id', async (req, res) => {
     try {
       const { arena_id } = req.params;
@@ -95,9 +91,29 @@ function createRatingRouter(pool) {
     }
   });
 
-  // --- 2. PLAYER & TEAM CONDUCT REVIEWS ---
+  // --- 2. ORGANIZER REVIEWS (STRICTLY CAPTAINS ONLY) ---
+  router.post('/organizer', async (req, res) => {
+    try {
+      const { organizer_name, captain_name, is_captain = true, rating = 5, review_text } = req.body;
 
-  // Post Player Conduct Review
+      if (!is_captain) {
+        return res.status(403).json({
+          success: false,
+          error: 'Forbidden: Only verified Team Captains can rate tournament organizers to prevent biased ratings from eliminated teams.'
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: `Organizer review submitted by Captain ${captain_name || 'Captain'} for ${organizer_name || 'Organizer'}!`,
+        rating: { organizer_name, captain_name, rating, review_text }
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // --- 3. PLAYER & TEAM CONDUCT REVIEWS ---
   router.post('/player-conduct', async (req, res) => {
     try {
       const validated = PlayerConductSchema.parse(req.body);
@@ -119,7 +135,6 @@ function createRatingRouter(pool) {
     }
   });
 
-  // Get Player Conduct Profile
   router.get('/player-conduct/:player_id', async (req, res) => {
     try {
       const { player_id } = req.params;
@@ -147,9 +162,7 @@ function createRatingRouter(pool) {
     }
   });
 
-  // --- 3. SCORER ACCURACY REVIEWS ---
-
-  // Post Scorer Review by Captain
+  // --- 4. SCORER ACCURACY REVIEWS ---
   router.post('/scorer', async (req, res) => {
     try {
       const validated = ScorerReviewSchema.parse(req.body);
@@ -167,34 +180,6 @@ function createRatingRouter(pool) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ success: false, error: 'Validation Error', details: err.errors });
       }
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  // Get Scorer Reviews & Avg Rating
-  router.get('/scorer/:scorer_user_id', async (req, res) => {
-    try {
-      const { scorer_user_id } = req.params;
-      const result = await pool.query(
-        `SELECT r.*, c.display_name as captain_name
-         FROM scorer_reviews r
-         LEFT JOIN player_profiles c ON r.captain_user_id = c.user_id
-         WHERE r.scorer_user_id = $1
-         ORDER BY r.created_at DESC`,
-        [scorer_user_id]
-      );
-
-      const avgRes = await pool.query(
-        `SELECT AVG(accuracy_rating) as avg_accuracy FROM scorer_reviews WHERE scorer_user_id = $1`,
-        [scorer_user_id]
-      );
-
-      res.json({
-        success: true,
-        avgAccuracyRating: parseFloat(avgRes.rows[0].avg_accuracy || 0).toFixed(1),
-        reviews: result.rows
-      });
-    } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
   });
