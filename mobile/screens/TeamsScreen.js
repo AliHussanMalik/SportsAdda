@@ -17,14 +17,17 @@ export default function TeamsScreen() {
   const { theme } = useTheme();
 
   const [teams, setTeams] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState(null);
-  const [roster, setRoster] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Search & Sport Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSportFilter, setSelectedSportFilter] = useState('ALL');
+
+  // Inline Expanded Team Cards State (Map of expanded team IDs)
+  const [expandedTeamId, setExpandedTeamId] = useState(null);
+  const [teamRosters, setTeamRosters] = useState({}); // { [teamId]: rosterArray }
+  const [loadingRosterId, setLoadingRosterId] = useState(null);
 
   // Challenge Modal State
   const [challengeTargetTeam, setChallengeTargetTeam] = useState(null);
@@ -35,10 +38,14 @@ export default function TeamsScreen() {
   // Invite Player Modal State
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [activeInviteTeam, setActiveInviteTeam] = useState(null);
 
-  // Set Player Role Modal State (Captain Action)
-  const [roleModalVisible, setRoleModalVisible] = useState(false);
+  // Tactical Lineup Reorder Modal (Batting & Bowling Order by Keeper / Captain)
+  const [reorderModalVisible, setRoleModalVisible] = useState(false);
   const [targetPlayer, setTargetPlayer] = useState(null);
+  const [activeTeamForReorder, setActiveTeamForReorder] = useState(null);
+  const [selectedBattingPos, setSelectedBattingPos] = useState('1');
+  const [selectedBowlingSpell, setSelectedBowlingSpell] = useState('Opening Bowler (Overs 1-4)');
 
   const fetchTeams = async () => {
     setLoading(true);
@@ -67,16 +74,36 @@ export default function TeamsScreen() {
     }
   };
 
-  const fetchTeamRoster = async (teamId) => {
-    try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}`);
-      const data = await res.json();
-      if (data.success) {
-        setSelectedTeam(data.team);
-        setRoster(data.roster);
+  const toggleTeamInlineDropdown = async (teamId) => {
+    if (expandedTeamId === teamId) {
+      // Collapse
+      setExpandedTeamId(null);
+      return;
+    }
+
+    setExpandedTeamId(teamId);
+
+    // If roster not cached, fetch from backend
+    if (!teamRosters[teamId]) {
+      setLoadingRosterId(teamId);
+      try {
+        const res = await fetch(`${API_BASE}/teams/${teamId}`);
+        const data = await res.json();
+        if (data.success) {
+          // Initialize roster with default batting & bowling orders if missing
+          const formattedRoster = (data.roster || []).map((p, idx) => ({
+            ...p,
+            batting_order: p.batting_order || idx + 1,
+            bowling_order: p.bowling_order || (idx % 2 === 0 ? 'Opening Bowler (Overs 1-4)' : 'Middle Overs Spin (Overs 5-12)')
+          }));
+
+          setTeamRosters((prev) => ({ ...prev, [teamId]: formattedRoster }));
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingRosterId(null);
       }
-    } catch (e) {
-      console.error(e);
     }
   };
 
@@ -98,7 +125,6 @@ export default function TeamsScreen() {
     );
   };
 
-  // Player Sends Join Request
   const handleSendJoinRequest = (team) => {
     fetch(`${API_BASE}/teams/${team.id}/join-requests`, {
       method: 'POST',
@@ -112,10 +138,9 @@ export default function TeamsScreen() {
     );
   };
 
-  // Captain Invites Player
   const handleSendInvitation = () => {
-    if (!inviteEmail) return;
-    fetch(`${API_BASE}/teams/${selectedTeam?.id || 'team'}/invitations`, {
+    if (!inviteEmail || !activeInviteTeam) return;
+    fetch(`${API_BASE}/teams/${activeInviteTeam.id}/invitations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ player_email: inviteEmail })
@@ -126,18 +151,32 @@ export default function TeamsScreen() {
     setInviteEmail('');
   };
 
-  // Captain Sets Tactical Role (Fast Bowler, Spin, Batsman, Keeper, All-Rounder)
-  const handleSetPlayerRole = (newRole) => {
-    if (!targetPlayer || !selectedTeam) return;
-    fetch(`${API_BASE}/teams/${selectedTeam.id}/roster/${targetPlayer.player_id}/role`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ new_role: newRole })
-    }).catch(() => {});
+  // Keeper / Captain Lineup Reordering Handler
+  const handleSaveLineupOrder = () => {
+    if (!targetPlayer || !activeTeamForReorder) return;
 
+    const teamId = activeTeamForReorder.id;
+    const updatedRoster = (teamRosters[teamId] || []).map((p) => {
+      if (p.player_id === targetPlayer.player_id) {
+        return {
+          ...p,
+          batting_order: parseInt(selectedBattingPos, 10),
+          bowling_order: selectedBowlingSpell
+        };
+      }
+      return p;
+    });
+
+    // Sort by batting order
+    updatedRoster.sort((a, b) => a.batting_order - b.batting_order);
+
+    setTeamRosters((prev) => ({ ...prev, [teamId]: updatedRoster }));
     setRoleModalVisible(false);
-    Alert.alert('⚙️ Tactical Role Updated', `Role for ${targetPlayer.display_name} updated to [${newRole}]!`);
-    fetchTeamRoster(selectedTeam.id);
+
+    Alert.alert(
+      '🏏 Lineup Reordered by Keeper/Captain',
+      `${targetPlayer.display_name} has been set to Batting Position #${selectedBattingPos} and Bowling Order [${selectedBowlingSpell}]!`
+    );
   };
 
   // Filtered Teams List
@@ -157,8 +196,10 @@ export default function TeamsScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.bg }]} contentContainerStyle={{ padding: 16 }}>
       {/* Header */}
-      <Text style={[styles.title, { color: theme.text }]}>🛡️ Teams & Squad Rosters</Text>
-      <Text style={[styles.subtitle, { color: theme.subText }]}>Team branding, player invitations, join requests & tactical roles</Text>
+      <Text style={[styles.title, { color: theme.text }]}>🛡️ Teams & Squad Lineups</Text>
+      <Text style={[styles.subtitle, { color: theme.subText }]}>
+        Inline squad dropdowns, keeper/captain batting & bowling order management
+      </Text>
 
       {/* Search Input Bar */}
       <View style={[styles.searchBox, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
@@ -222,108 +263,135 @@ export default function TeamsScreen() {
         </View>
       ) : (
         <View>
-          {filteredTeams.map((t) => (
-            <View
-              key={t.id}
-              style={[
-                styles.teamCard,
-                { backgroundColor: theme.cardBg, borderColor: theme.border },
-                selectedTeam?.id === t.id && { borderColor: theme.accent, backgroundColor: theme.badgeBg }
-              ]}
-            >
-              <TouchableOpacity style={styles.teamHeader} onPress={() => fetchTeamRoster(t.id)}>
-                <View style={styles.logoPlaceholder}>
-                  <Text style={{ fontSize: 22 }}>
-                    {t.team_name.includes('🏏')
-                      ? '🏏'
-                      : t.team_name.includes('⚽')
-                      ? '⚽'
-                      : t.team_name.includes('🎾')
-                      ? '🎾'
-                      : t.team_name.includes('🏀')
-                      ? '🏀'
-                      : '🛡️'}
-                  </Text>
-                </View>
+          {filteredTeams.map((t) => {
+            const isExpanded = expandedTeamId === t.id;
+            const currentRoster = teamRosters[t.id] || [];
 
-                <View style={{ marginLeft: 12, flex: 1 }}>
-                  <Text style={[styles.teamName, { color: theme.text }]}>{t.team_name}</Text>
-                  <Text style={[styles.captainText, { color: theme.subText }]}>
-                    👑 Captain: {t.captain_name || 'N/A'}
-                  </Text>
-                </View>
-
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={[styles.rosterBadge, { color: theme.accent }]}>{t.roster_count || 1} Players</Text>
-
-                  <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                    {/* Send Join Request Button */}
-                    <TouchableOpacity
-                      style={[styles.miniBtn, { backgroundColor: 'rgba(6, 182, 212, 0.2)', borderColor: '#06b6d4' }]}
-                      onPress={() => handleSendJoinRequest(t)}
-                    >
-                      <Text style={[styles.miniBtnText, { color: '#06b6d4' }]}>🙋 Join</Text>
-                    </TouchableOpacity>
-
-                    {/* Captain Challenge Button */}
-                    <TouchableOpacity
-                      style={[styles.miniBtn, { backgroundColor: theme.accent }]}
-                      onPress={() => handleOpenChallenge(t)}
-                    >
-                      <Text style={[styles.miniBtnText, { color: '#000' }]}>⚔️ Challenge</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-          ))}
-
-          {/* Selected Team Roster View & Captain Actions */}
-          {selectedTeam && (
-            <View style={[styles.rosterBox, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-              <View style={styles.rosterBoxHeader}>
-                <Text style={[styles.rosterTitle, { color: theme.accent }]}>
-                  {selectedTeam.team_name} - Squad Roster Details
-                </Text>
-
-                {/* Invite Player Button for Captain */}
+            return (
+              <View key={t.id} style={{ marginBottom: 12 }}>
+                {/* Main Team Card Button */}
                 <TouchableOpacity
-                  style={[styles.invitePlayerBtn, { backgroundColor: theme.accent }]}
-                  onPress={() => setInviteModalVisible(true)}
+                  style={[
+                    styles.teamCard,
+                    { backgroundColor: theme.cardBg, borderColor: theme.border },
+                    isExpanded && { borderColor: theme.accent, backgroundColor: theme.badgeBg }
+                  ]}
+                  onPress={() => toggleTeamInlineDropdown(t.id)}
                 >
-                  <Text style={styles.invitePlayerBtnText}>📨 Invite Player</Text>
-                </TouchableOpacity>
-              </View>
-
-              {roster.map((p) => (
-                <View key={p.player_id} style={[styles.rosterRow, { borderBottomColor: theme.border }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.playerName, { color: theme.text }]}>{p.display_name}</Text>
-                    <Text style={[styles.playerRole, { color: theme.subText }]}>
-                      #{p.jersey_number || 0} • {p.preferred_role || 'Player'}
-                    </Text>
-                  </View>
-
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <View style={[styles.squadRoleBadge, { backgroundColor: theme.badgeBg }]}>
-                      <Text style={[styles.squadRoleText, { color: theme.accent }]}>{p.role_in_team || 'PLAYER'}</Text>
+                  <View style={styles.teamHeader}>
+                    <View style={styles.logoPlaceholder}>
+                      <Text style={{ fontSize: 22 }}>
+                        {t.team_name.includes('🏏')
+                          ? '🏏'
+                          : t.team_name.includes('⚽')
+                          ? '⚽'
+                          : t.team_name.includes('🎾')
+                          ? '🎾'
+                          : t.team_name.includes('🏀')
+                          ? '🏀'
+                          : '🛡️'}
+                      </Text>
                     </View>
 
-                    {/* Captain Role Assign Button */}
-                    <TouchableOpacity
-                      style={styles.setRoleBtn}
-                      onPress={() => {
-                        setTargetPlayer(p);
-                        setRoleModalVisible(true);
-                      }}
-                    >
-                      <Text style={[styles.setRoleText, { color: theme.subText }]}>⚙️ Assign Role</Text>
-                    </TouchableOpacity>
+                    <View style={{ marginLeft: 12, flex: 1 }}>
+                      <Text style={[styles.teamName, { color: theme.text }]}>{t.team_name}</Text>
+                      <Text style={[styles.captainText, { color: theme.subText }]}>
+                        👑 Captain: {t.captain_name || 'N/A'}
+                      </Text>
+                    </View>
+
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={[styles.rosterBadge, { color: theme.accent }]}>
+                        {t.roster_count || 1} Players {isExpanded ? '▲' : '▼'}
+                      </Text>
+
+                      <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                        <TouchableOpacity
+                          style={[styles.miniBtn, { backgroundColor: 'rgba(6, 182, 212, 0.2)', borderColor: '#06b6d4' }]}
+                          onPress={() => handleSendJoinRequest(t)}
+                        >
+                          <Text style={[styles.miniBtnText, { color: '#06b6d4' }]}>🙋 Join</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.miniBtn, { backgroundColor: theme.accent }]}
+                          onPress={() => handleOpenChallenge(t)}
+                        >
+                          <Text style={[styles.miniBtnText, { color: '#000' }]}>⚔️ Challenge</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
-          )}
+                </TouchableOpacity>
+
+                {/* INLINE DROPDOWN ACCORDION (Opens directly beneath THIS team card!) */}
+                {isExpanded && (
+                  <View style={[styles.inlineDropdownContent, { backgroundColor: theme.cardBg, borderColor: theme.accent }]}>
+                    <View style={styles.dropdownHeader}>
+                      <Text style={[styles.dropdownTitle, { color: theme.accent }]}>
+                        📋 {t.team_name} - Squad Lineup & Batting Order
+                      </Text>
+
+                      <TouchableOpacity
+                        style={[styles.invitePlayerBtn, { backgroundColor: theme.accent }]}
+                        onPress={() => {
+                          setActiveInviteTeam(t);
+                          setInviteModalVisible(true);
+                        }}
+                      >
+                        <Text style={styles.invitePlayerBtnText}>📨 Invite Player</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {loadingRosterId === t.id ? (
+                      <ActivityIndicator color={theme.accent} style={{ marginVertical: 14 }} />
+                    ) : currentRoster.length === 0 ? (
+                      <Text style={[styles.emptyRosterText, { color: theme.subText }]}>
+                        No squad members listed yet. Tap 'Invite Player' to add squad members!
+                      </Text>
+                    ) : (
+                      currentRoster.map((p, idx) => (
+                        <View key={p.player_id || idx} style={[styles.rosterRow, { borderBottomColor: theme.border }]}>
+                          {/* Batting Order Position Badge */}
+                          <View style={[styles.orderPosBadge, { backgroundColor: theme.accent }]}>
+                            <Text style={styles.orderPosText}>#{p.batting_order || idx + 1}</Text>
+                          </View>
+
+                          <View style={{ flex: 1, marginLeft: 10 }}>
+                            <Text style={[styles.playerName, { color: theme.text }]}>{p.display_name}</Text>
+                            <Text style={[styles.playerRole, { color: theme.subText }]}>
+                              {p.preferred_role || 'Player'} • ⚾ {p.bowling_order}
+                            </Text>
+                          </View>
+
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <View style={[styles.squadRoleBadge, { backgroundColor: theme.badgeBg }]}>
+                              <Text style={[styles.squadRoleText, { color: theme.accent }]}>{p.role_in_team || 'PLAYER'}</Text>
+                            </View>
+
+                            {/* Keeper / Captain Reorder Lineup Button */}
+                            <TouchableOpacity
+                              style={styles.reorderBtn}
+                              onPress={() => {
+                                setTargetPlayer(p);
+                                setActiveTeamForReorder(t);
+                                setSelectedBattingPos(String(p.batting_order || idx + 1));
+                                setRoleModalVisible(true);
+                              }}
+                            >
+                              <Text style={[styles.reorderBtnText, { color: theme.subText }]}>
+                                🏏 Keeper Reorder
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </View>
       )}
 
@@ -380,7 +448,7 @@ export default function TeamsScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.accent }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>📨 Invite Player to Squad</Text>
-            <Text style={[styles.modalSubtitle, { color: theme.subText }]}>Send direct invitation to a player</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.subText }]}>Send direct invitation for {activeInviteTeam?.team_name}</Text>
 
             <TextInput
               style={[styles.modalInput, { backgroundColor: theme.inputBg, color: theme.inputText, borderColor: theme.border }]}
@@ -403,35 +471,71 @@ export default function TeamsScreen() {
         </View>
       </Modal>
 
-      {/* Set Tactical Player Role Modal */}
+      {/* Keeper / Captain Batting & Bowling Order Reorder Modal */}
       {targetPlayer && (
-        <Modal visible={roleModalVisible} animationType="slide" transparent onRequestClose={() => setRoleModalVisible(false)}>
+        <Modal visible={reorderModalVisible} animationType="slide" transparent onRequestClose={() => setRoleModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.accent }]}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>⚙️ Assign Tactical Role</Text>
-              <Text style={[styles.modalSubtitle, { color: theme.subText }]}>Set status for {targetPlayer.display_name}</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>🏏 Keeper / Captain Lineup Organizer</Text>
+              <Text style={[styles.modalSubtitle, { color: theme.subText }]}>Organize Batting & Bowling Order for {targetPlayer.display_name}</Text>
 
+              {/* Batting Position Selection */}
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Set Batting Order Position:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                {['1 (Opener)', '2 (Opener)', '3 (One Down)', '4 (Middle Order)', '5 (Middle Order)', '6 (Finisher)', '7', '8', '9', '10', '11'].map((pos) => {
+                  const numStr = pos.split(' ')[0];
+                  return (
+                    <TouchableOpacity
+                      key={pos}
+                      style={[
+                        styles.posChip,
+                        { borderColor: theme.border },
+                        selectedBattingPos === numStr && { backgroundColor: theme.accent, borderColor: theme.accent }
+                      ]}
+                      onPress={() => setSelectedBattingPos(numStr)}
+                    >
+                      <Text style={[styles.posChipText, { color: selectedBattingPos === numStr ? '#000' : theme.text }]}>
+                        #{pos}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Bowling Order Selection */}
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Set Bowling Order & Spell:</Text>
               <View style={styles.optionGroup}>
                 {[
-                  'Fast Bowler ⚡',
-                  'Spin Bowler 🌀',
-                  'Top-Order Batsman 🏏',
-                  'Wicketkeeper / Goalkeeper 🧤',
-                  'All-Rounder 🌟'
-                ].map((roleStr) => (
+                  'Opening Bowler (Overs 1-4)',
+                  'First Change (Overs 5-8)',
+                  'Middle Overs Spin (Overs 9-15)',
+                  'Death Overs Specialist (Overs 16-20)'
+                ].map((spell) => (
                   <TouchableOpacity
-                    key={roleStr}
-                    style={[styles.modalOptionBtn, { borderColor: theme.border }]}
-                    onPress={() => handleSetPlayerRole(roleStr)}
+                    key={spell}
+                    style={[
+                      styles.modalOptionBtn,
+                      { borderColor: theme.border },
+                      selectedBowlingSpell === spell && { backgroundColor: theme.accent, borderColor: theme.accent }
+                    ]}
+                    onPress={() => setSelectedBowlingSpell(spell)}
                   >
-                    <Text style={[styles.modalOptionText, { color: theme.text }]}>{roleStr}</Text>
+                    <Text style={[styles.modalOptionText, { color: selectedBowlingSpell === spell ? '#000' : theme.text }]}>
+                      ⚾ {spell}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              <TouchableOpacity style={[styles.cancelBtn, { borderColor: theme.border, marginTop: 10 }]} onPress={() => setRoleModalVisible(false)}>
-                <Text style={[styles.cancelBtnText, { color: theme.subText }]}>Close</Text>
-              </TouchableOpacity>
+              <View style={styles.modalActionRow}>
+                <TouchableOpacity style={[styles.cancelBtn, { borderColor: theme.border }]} onPress={() => setRoleModalVisible(false)}>
+                  <Text style={[styles.cancelBtnText, { color: theme.subText }]}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.sendBtn, { backgroundColor: theme.accent }]} onPress={handleSaveLineupOrder}>
+                  <Text style={styles.sendBtnText}>💾 Save Tactical Order</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -456,7 +560,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 13 },
   filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1 },
   filterChipText: { fontSize: 12, fontWeight: '700' },
-  teamCard: { borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1 },
+  teamCard: { borderRadius: 16, padding: 16, borderWidth: 1 },
   teamHeader: { flexDirection: 'row', alignItems: 'center' },
   logoPlaceholder: {
     width: 44,
@@ -471,18 +575,30 @@ const styles = StyleSheet.create({
   rosterBadge: { fontWeight: '700', fontSize: 11, marginBottom: 4 },
   miniBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
   miniBtnText: { fontWeight: '800', fontSize: 10 },
-  rosterBox: { marginTop: 14, borderRadius: 16, padding: 16, borderWidth: 1 },
-  rosterBoxHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  rosterTitle: { fontSize: 14, fontWeight: '800', flex: 1 },
-  invitePlayerBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  invitePlayerBtnText: { color: '#000', fontWeight: '800', fontSize: 11 },
-  rosterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1 },
-  playerName: { fontSize: 14, fontWeight: '700' },
-  playerRole: { fontSize: 11 },
-  squadRoleBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  squadRoleText: { fontSize: 10, fontWeight: '800' },
-  setRoleBtn: { marginTop: 4 },
-  setRoleText: { fontSize: 10, fontWeight: '700' },
+  inlineDropdownContent: {
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    marginTop: -4
+  },
+  dropdownHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  dropdownTitle: { fontSize: 13, fontWeight: '800', flex: 1 },
+  invitePlayerBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  invitePlayerBtnText: { color: '#000', fontWeight: '800', fontSize: 10 },
+  emptyRosterText: { fontSize: 12, textAlign: 'center', marginVertical: 10 },
+  rosterRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1 },
+  orderPosBadge: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  orderPosText: { color: '#000', fontWeight: '900', fontSize: 11 },
+  playerName: { fontSize: 13, fontWeight: '700' },
+  playerRole: { fontSize: 11, marginTop: 2 },
+  squadRoleBadge: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },
+  squadRoleText: { fontSize: 9, fontWeight: '800' },
+  reorderBtn: { marginTop: 4 },
+  reorderBtnText: { fontSize: 10, fontWeight: '700' },
+  posChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginRight: 8, borderWidth: 1 },
+  posChipText: { fontSize: 11, fontWeight: '800' },
   errorContainer: { alignItems: 'center', marginTop: 40, padding: 16 },
   errorText: { color: '#ef4444', fontSize: 14, fontWeight: '600', marginBottom: 12, textAlign: 'center' },
   retryBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
