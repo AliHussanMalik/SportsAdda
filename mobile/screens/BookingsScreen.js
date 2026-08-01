@@ -11,6 +11,7 @@ import {
   Linking
 } from 'react-native';
 import { API_BASE } from '../config';
+import { useTheme } from '../context/ThemeContext';
 
 // Major Pakistan Cities with Coordinates for Distance Calculation
 const PAKISTAN_CITIES = [
@@ -24,13 +25,15 @@ const PAKISTAN_CITIES = [
 ];
 
 export default function BookingsScreen() {
+  const { theme } = useTheme();
+
   const [arenas, setArenas] = useState([]);
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // View Mode: 'BOOKING' (Existing registered view) or 'EXPLORE_ALL' (Registered + All Map Grounds with Directions & Distance)
+  // View Mode: 'BOOKING' or 'EXPLORE_ALL'
   const [viewMode, setViewMode] = useState('BOOKING');
 
   // Location & Search State
@@ -40,10 +43,10 @@ export default function BookingsScreen() {
   const [osmResults, setOsmResults] = useState([]);
   const [searchingOsm, setSearchingOsm] = useState(false);
 
-  // Haversine Distance Formula (calculates distance in km between 2 lat/lng points)
+  // Haversine Distance Formula (calculates distance in km)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     if (!lat1 || !lon1 || !lat2 || !lon2) return '1.5';
-    const R = 6371; // Earth radius in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a =
@@ -53,7 +56,7 @@ export default function BookingsScreen() {
     return (R * c).toFixed(1);
   };
 
-  // Launch Turn-by-Turn Directions in Google Maps
+  // Launch Directions in Google Maps
   const openGoogleMapsDirections = (lat, lng, name) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodeURIComponent(name)}`;
     Linking.openURL(url).catch(() => {
@@ -173,45 +176,49 @@ export default function BookingsScreen() {
   });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.bg }]} contentContainerStyle={{ padding: 16 }}>
       {/* Title & Mode Switcher */}
-      <Text style={styles.title}>🏟️ Pakistan Venues & Turfs</Text>
-      <Text style={styles.subtitle}>Book registered indoor courts or explore all grounds on Google Maps</Text>
+      <Text style={[styles.title, { color: theme.text }]}>🏟️ Pakistan Venues & Turfs</Text>
+      <Text style={[styles.subtitle, { color: theme.subText }]}>Book registered indoor courts or explore all grounds on Google Maps</Text>
 
       {/* Mode Switcher Tabs */}
-      <View style={styles.modeToggleRow}>
+      <View style={[styles.modeToggleRow, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
         <TouchableOpacity
-          style={[styles.modeTab, viewMode === 'BOOKING' && styles.activeModeTab]}
+          style={[styles.modeTab, viewMode === 'BOOKING' && { backgroundColor: theme.accent }]}
           onPress={() => setViewMode('BOOKING')}
         >
-          <Text style={[styles.modeTabText, viewMode === 'BOOKING' && styles.activeModeTabText]}>
+          <Text style={[styles.modeTabText, { color: theme.subText }, viewMode === 'BOOKING' && { color: '#000', fontWeight: '800' }]}>
             📅 Instant Booking Courts
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.modeTab, viewMode === 'EXPLORE_ALL' && styles.activeModeTab]}
+          style={[styles.modeTab, viewMode === 'EXPLORE_ALL' && { backgroundColor: theme.accent }]}
           onPress={() => setViewMode('EXPLORE_ALL')}
         >
-          <Text style={[styles.modeTabText, viewMode === 'EXPLORE_ALL' && styles.activeModeTabText]}>
-            🗺️ Explore All Grounds & Maps
+          <Text style={[styles.modeTabText, { color: theme.subText }, viewMode === 'EXPLORE_ALL' && { color: '#000', fontWeight: '800' }]}>
+            MAP Grounds & Directions
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* City Selector */}
-      <Text style={styles.sectionHeader}>Select Region in Pakistan:</Text>
+      <Text style={[styles.sectionHeader, { color: theme.text }]}>Select Region in Pakistan:</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
         {PAKISTAN_CITIES.map((c) => (
           <TouchableOpacity
             key={c.name}
-            style={[styles.cityChip, selectedCity.name === c.name && styles.selectedCityChip]}
+            style={[
+              styles.cityChip,
+              { backgroundColor: theme.cardBg, borderColor: theme.border },
+              selectedCity.name === c.name && { backgroundColor: theme.badgeBg, borderColor: theme.accent }
+            ]}
             onPress={() => {
               setSelectedCity(c);
               searchOsmPakistan(searchQuery, c.name);
             }}
           >
-            <Text style={[styles.cityChipText, selectedCity.name === c.name && styles.selectedCityChipText]}>
+            <Text style={[styles.cityChipText, { color: theme.subText }, selectedCity.name === c.name && { color: theme.accent, fontWeight: '800' }]}>
               📍 {c.name}
             </Text>
           </TouchableOpacity>
@@ -219,12 +226,12 @@ export default function BookingsScreen() {
       </ScrollView>
 
       {/* Search Input Bar */}
-      <View style={styles.searchBox}>
+      <View style={[styles.searchBox, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
         <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.inputText }]}
           placeholder="Search by turf name, area (DHA, Gulberg) or ground type"
-          placeholderTextColor="#6b7280"
+          placeholderTextColor={theme.subText}
           value={searchQuery}
           onChangeText={(txt) => {
             setSearchQuery(txt);
@@ -233,7 +240,7 @@ export default function BookingsScreen() {
         />
         {searchQuery !== '' && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Text style={{ color: '#9ca3af', fontSize: 16, paddingHorizontal: 6 }}>✕</Text>
+            <Text style={{ color: theme.subText, fontSize: 16, paddingHorizontal: 6 }}>✕</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -242,36 +249,40 @@ export default function BookingsScreen() {
       {viewMode === 'BOOKING' ? (
         <View>
           {/* Registered Courts Selector */}
-          <Text style={styles.sectionHeader}>Registered SportsAdda Courts</Text>
+          <Text style={[styles.sectionHeader, { color: theme.text }]}>Registered SportsAdda Courts</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
             {filteredCourts.map((court) => (
               <TouchableOpacity
                 key={court.id}
-                style={[styles.courtChip, selectedCourt?.id === court.id && styles.selectedCourtChip]}
+                style={[
+                  styles.courtChip,
+                  { backgroundColor: theme.cardBg, borderColor: theme.border },
+                  selectedCourt?.id === court.id && { borderColor: theme.accent, backgroundColor: theme.badgeBg }
+                ]}
                 onPress={() => setSelectedCourt(court)}
               >
                 <Text style={{ fontSize: 18, marginRight: 6 }}>
                   {court.sport_type === 'CRICKET' ? '🏏' : court.sport_type === 'PADEL' ? '🎾' : '⚽'}
                 </Text>
                 <View>
-                  <Text style={styles.courtName}>{court.court_name}</Text>
-                  <Text style={styles.courtRate}>Rs. {court.hourly_rate * 70}/hr</Text>
+                  <Text style={[styles.courtName, { color: theme.text }]}>{court.court_name}</Text>
+                  <Text style={[styles.courtRate, { color: theme.accent }]}>Rs. {court.hourly_rate * 70}/hr</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
           {/* Slots Grid */}
-          <Text style={styles.sectionHeader}>
+          <Text style={[styles.sectionHeader, { color: theme.text }]}>
             Hourly Slots for {selectedCourt ? selectedCourt.court_name : 'Selected Court'}
           </Text>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 20 }} />
+            <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 20 }} />
           ) : error ? (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>⚠️ {error}</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={fetchArenas}>
+              <TouchableOpacity style={[styles.retryBtn, { backgroundColor: theme.accent }]} onPress={fetchArenas}>
                 <Text style={styles.retryText}>🔄 Retry Connection</Text>
               </TouchableOpacity>
             </View>
@@ -283,18 +294,21 @@ export default function BookingsScreen() {
                   disabled={s.isBooked}
                   style={[
                     styles.slotCard,
+                    { backgroundColor: theme.cardBg, borderColor: theme.border },
                     s.isBooked && styles.bookedSlot,
                     s.isPeak && !s.isBooked && styles.peakSlot
                   ]}
                   onPress={() => handleBookSlot(s)}
                 >
-                  <Text style={[styles.slotTime, s.isBooked && { color: '#6b7280' }]}>{s.timeLabel}</Text>
+                  <Text style={[styles.slotTime, { color: theme.text }, s.isBooked && { color: theme.subText }]}>
+                    {s.timeLabel}
+                  </Text>
                   <View style={styles.slotFooter}>
-                    <Text style={[styles.slotPrice, s.isBooked && { color: '#6b7280' }]}>
+                    <Text style={[styles.slotPrice, { color: theme.accent }, s.isBooked && { color: theme.subText }]}>
                       Rs. {s.rate ? Math.round(s.rate * 70) : 3500}
                     </Text>
                     {s.isPeak && !s.isBooked && <Text style={styles.peakLabel}>⚡ PEAK</Text>}
-                    {s.isBooked && <Text style={{ fontSize: 10, color: '#6b7280', fontWeight: 'bold' }}>RESERVED</Text>}
+                    {s.isBooked && <Text style={{ fontSize: 10, color: theme.subText, fontWeight: 'bold' }}>RESERVED</Text>}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -302,33 +316,33 @@ export default function BookingsScreen() {
           )}
         </View>
       ) : (
-        /* Mode 2: ALL Courts & Grounds (Registered + Map Venues with Distance & Google Maps Directions) */
+        /* Mode 2: ALL Courts & Grounds */
         <View>
-          <Text style={styles.sectionHeader}>All Venues & Turfs Near {selectedCity.name}</Text>
-          {searchingOsm && <ActivityIndicator color="#06b6d4" style={{ marginBottom: 12 }} />}
+          <Text style={[styles.sectionHeader, { color: theme.text }]}>All Venues & Turfs Near {selectedCity.name}</Text>
+          {searchingOsm && <ActivityIndicator color={theme.accent} style={{ marginBottom: 12 }} />}
 
           {/* Registered SportsAdda Venues Card */}
           {allCourts.map((c) => {
             const dist = calculateDistance(selectedCity.lat, selectedCity.lng, c.latitude, c.longitude);
             return (
-              <View key={c.id} style={[styles.allVenueCard, styles.partnerCard]}>
+              <View key={c.id} style={[styles.allVenueCard, styles.partnerCard, { backgroundColor: theme.cardBg, borderColor: theme.accent }]}>
                 <View style={styles.venueHeader}>
                   <View style={{ flex: 1 }}>
                     <View style={styles.badgeRow}>
-                      <View style={styles.partnerBadge}>
-                        <Text style={styles.partnerBadgeText}>✅ PARTNER (INSTANT BOOK)</Text>
+                      <View style={[styles.partnerBadge, { backgroundColor: theme.badgeBg }]}>
+                        <Text style={[styles.partnerBadgeText, { color: theme.accent }]}>✅ PARTNER (INSTANT BOOK)</Text>
                       </View>
                       <Text style={styles.distText}>📏 {dist} km away</Text>
                     </View>
-                    <Text style={styles.venueName}>{c.court_name}</Text>
-                    <Text style={styles.venueAddress}>{c.arenaName} • {c.arenaAddress}</Text>
+                    <Text style={[styles.venueName, { color: theme.text }]}>{c.court_name}</Text>
+                    <Text style={[styles.venueAddress, { color: theme.subText }]}>{c.arenaName} • {c.arenaAddress}</Text>
                   </View>
                 </View>
 
                 <View style={styles.venueActionRow}>
-                  <Text style={styles.venueRateText}>Rs. {c.hourly_rate * 70}/hr</Text>
+                  <Text style={[styles.venueRateText, { color: theme.accent }]}>Rs. {c.hourly_rate * 70}/hr</Text>
                   <TouchableOpacity
-                    style={styles.directionsBtn}
+                    style={[styles.directionsBtn, { backgroundColor: theme.accent }]}
                     onPress={() => openGoogleMapsDirections(c.latitude, c.longitude, c.court_name)}
                   >
                     <Text style={styles.directionsBtnText}>🧭 Google Maps Route</Text>
@@ -346,7 +360,7 @@ export default function BookingsScreen() {
             const titleName = item.name || item.display_name.split(',')[0];
 
             return (
-              <View key={item.place_id} style={styles.allVenueCard}>
+              <View key={item.place_id} style={[styles.allVenueCard, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
                 <View style={styles.venueHeader}>
                   <View style={{ flex: 1 }}>
                     <View style={styles.badgeRow}>
@@ -355,13 +369,13 @@ export default function BookingsScreen() {
                       </View>
                       <Text style={styles.distText}>📏 {dist} km away</Text>
                     </View>
-                    <Text style={styles.venueName}>{titleName}</Text>
-                    <Text style={styles.venueAddress} numberOfLines={2}>{item.display_name}</Text>
+                    <Text style={[styles.venueName, { color: theme.text }]}>{titleName}</Text>
+                    <Text style={[styles.venueAddress, { color: theme.subText }]} numberOfLines={2}>{item.display_name}</Text>
                   </View>
                 </View>
 
                 <View style={styles.venueActionRow}>
-                  <Text style={{ color: '#9ca3af', fontSize: 11, fontWeight: '600' }}>Open Public Arena</Text>
+                  <Text style={{ color: theme.subText, fontSize: 11, fontWeight: '600' }}>Open Public Arena</Text>
                   <TouchableOpacity
                     style={[styles.directionsBtn, { backgroundColor: '#06b6d4' }]}
                     onPress={() => openGoogleMapsDirections(itemLat, itemLng, titleName)}
@@ -379,17 +393,15 @@ export default function BookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#090d16' },
-  title: { fontSize: 24, fontWeight: '800', color: '#fff' },
-  subtitle: { fontSize: 12, color: '#9ca3af', marginBottom: 14 },
+  container: { flex: 1 },
+  title: { fontSize: 24, fontWeight: '800' },
+  subtitle: { fontSize: 12, marginBottom: 14 },
   modeToggleRow: {
     flexDirection: 'row',
-    backgroundColor: '#111827',
     borderRadius: 14,
     padding: 4,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)'
+    borderWidth: 1
   },
   modeTab: {
     flex: 1,
@@ -397,105 +409,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 10
   },
-  activeModeTab: {
-    backgroundColor: '#10b981'
-  },
   modeTabText: {
-    color: '#9ca3af',
     fontSize: 12,
     fontWeight: '700'
   },
-  activeModeTabText: {
-    color: '#000',
-    fontWeight: '800'
-  },
   cityChip: {
-    backgroundColor: '#111827',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)'
-  },
-  selectedCityChip: {
-    backgroundColor: 'rgba(6, 182, 212, 0.2)',
-    borderColor: '#06b6d4'
+    borderWidth: 1
   },
   cityChipText: {
-    color: '#9ca3af',
     fontSize: 11,
     fontWeight: '700'
-  },
-  selectedCityChipText: {
-    color: '#06b6d4',
-    fontWeight: '800'
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111827',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)'
+    borderWidth: 1
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
     fontSize: 13
   },
   courtChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111827',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 14,
     marginRight: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)'
+    borderWidth: 1
   },
-  selectedCourtChip: { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.15)' },
-  courtName: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  courtRate: { color: '#10b981', fontSize: 11, fontWeight: '600' },
-  sectionHeader: { color: '#fff', fontSize: 15, fontWeight: '800', marginBottom: 10, marginTop: 4 },
+  courtName: { fontSize: 13, fontWeight: '700' },
+  courtRate: { fontSize: 11, fontWeight: '600' },
+  sectionHeader: { fontSize: 15, fontWeight: '800', marginBottom: 10, marginTop: 4 },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   slotCard: {
     width: '48%',
-    backgroundColor: '#111827',
     borderRadius: 14,
     padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)'
+    borderWidth: 1
   },
-  bookedSlot: { backgroundColor: 'rgba(31,41,55,0.4)', borderColor: '#1f2937' },
+  bookedSlot: { opacity: 0.5 },
   peakSlot: { borderColor: 'rgba(245,158,11,0.5)', backgroundColor: 'rgba(245,158,11,0.08)' },
-  slotTime: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  slotTime: { fontSize: 14, fontWeight: '800' },
   slotFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  slotPrice: { color: '#10b981', fontWeight: '800', fontSize: 13 },
+  slotPrice: { fontWeight: '800', fontSize: 13 },
   peakLabel: { color: '#f59e0b', fontSize: 9, fontWeight: '900' },
   errorContainer: { alignItems: 'center', marginTop: 30, padding: 16 },
   errorText: { color: '#ef4444', fontSize: 14, fontWeight: '600', marginBottom: 12, textAlign: 'center' },
-  retryBtn: { backgroundColor: '#10b981', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  retryBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
   retryText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   allVenueCard: {
-    backgroundColor: '#111827',
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)'
+    borderWidth: 1
   },
-  partnerCard: {
-    borderColor: '#10b981',
-    backgroundColor: 'rgba(16, 185, 129, 0.05)'
-  },
-  venueHeader: {
-    marginBottom: 10
-  },
+  partnerCard: {},
+  venueHeader: { marginBottom: 10 },
   badgeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -503,13 +481,11 @@ const styles = StyleSheet.create({
     marginBottom: 6
   },
   partnerBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6
   },
   partnerBadgeText: {
-    color: '#10b981',
     fontSize: 10,
     fontWeight: '800'
   },
@@ -530,12 +506,10 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   venueName: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '800'
   },
   venueAddress: {
-    color: '#9ca3af',
     fontSize: 11,
     marginTop: 2
   },
@@ -549,12 +523,10 @@ const styles = StyleSheet.create({
     marginTop: 4
   },
   venueRateText: {
-    color: '#10b981',
     fontWeight: '800',
     fontSize: 14
   },
   directionsBtn: {
-    backgroundColor: '#10b981',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10
