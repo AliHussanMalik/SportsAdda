@@ -24,12 +24,7 @@ export default function SidebarDrawer({
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={styles.overlay}>
-        {/* Backdrop Dismiss Area */}
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
-
-        {/* Sliding Sidebar Drawer */}
+        {/* Sliding Left Sidebar Drawer */}
         <View style={[styles.drawerContent, { backgroundColor: theme.cardBg, borderRightColor: theme.border }]}>
           {/* Header */}
           <View style={[styles.drawerHeader, { borderBottomColor: theme.border }]}>
@@ -140,6 +135,11 @@ export default function SidebarDrawer({
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Backdrop Dismiss Area on Right Side */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
       </View>
     </Modal>
   );

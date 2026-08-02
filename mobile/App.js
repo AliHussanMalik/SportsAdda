@@ -69,12 +69,14 @@ function MainApp() {
       {/* Main Screen Body */}
       <View style={styles.content}>{renderScreen()}</View>
 
-      {/* Responsive Bottom Navigation Bar with Safe Area Inset Padding */}
+      {/* Responsive Bottom Navigation Bar with Enhanced Safe Area Inset Padding */}
       <View style={[styles.navBar, { backgroundColor: theme.navBg, borderTopColor: theme.border }]}>
         <TouchableOpacity
           style={[styles.navItem, activeTab === 'profiles' && { backgroundColor: theme.badgeBg }]}
           onPress={() => setActiveTab('profiles')}
+          activeOpacity={0.7}
         >
+          <Text style={styles.navIcon}>👤</Text>
           <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'profiles' && { color: theme.accent }]}>
             Profiles
           </Text>
@@ -83,7 +85,9 @@ function MainApp() {
         <TouchableOpacity
           style={[styles.navItem, activeTab === 'bookings' && { backgroundColor: theme.badgeBg }]}
           onPress={() => setActiveTab('bookings')}
+          activeOpacity={0.7}
         >
+          <Text style={styles.navIcon}>🏟️</Text>
           <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'bookings' && { color: theme.accent }]}>
             Bookings
           </Text>
@@ -92,7 +96,9 @@ function MainApp() {
         <TouchableOpacity
           style={[styles.navItem, activeTab === 'teams' && { backgroundColor: theme.badgeBg }]}
           onPress={() => setActiveTab('teams')}
+          activeOpacity={0.7}
         >
+          <Text style={styles.navIcon}>🛡️</Text>
           <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'teams' && { color: theme.accent }]}>
             Teams
           </Text>
@@ -168,24 +174,29 @@ const styles = StyleSheet.create({
   navBar: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 20,
-    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 26,
+    paddingHorizontal: 12,
     justifyContent: 'space-around',
     alignItems: 'center',
-    minHeight: 64,
-    elevation: 10,
+    minHeight: 74,
+    elevation: 12,
     zIndex: 50
   },
   navItem: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 6,
+    marginHorizontal: 4,
     borderRadius: 12
   },
+  navIcon: {
+    fontSize: 16,
+    marginBottom: 2
+  },
   navLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '800'
   }
 });
