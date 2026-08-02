@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, TouchableWithoutFeedback } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import ThemeSelector from './ThemeSelector';
 
 export default function SidebarDrawer({
   visible,
@@ -126,13 +127,9 @@ export default function SidebarDrawer({
             </TouchableOpacity>
           </ScrollView>
 
-          {/* Footer Theme Toggle */}
+          {/* Footer Theme Control */}
           <View style={[styles.drawerFooter, { borderTopColor: theme.border, backgroundColor: theme.navBg }]}>
-            <TouchableOpacity onPress={toggleTheme} style={styles.themeBtn}>
-              <Text style={[styles.themeBtnText, { color: theme.text }]}>
-                Theme: {isDark ? 'Dark Mode' : 'Light Mode'}
-              </Text>
-            </TouchableOpacity>
+            <ThemeSelector />
           </View>
         </View>
 

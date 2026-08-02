@@ -69,40 +69,45 @@ function MainApp() {
       {/* Main Screen Body */}
       <View style={styles.content}>{renderScreen()}</View>
 
-      {/* Responsive Bottom Navigation Bar with Enhanced Safe Area Inset Padding */}
-      <View style={[styles.navBar, { backgroundColor: theme.navBg, borderTopColor: theme.border }]}>
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'profiles' && { backgroundColor: theme.badgeBg }]}
-          onPress={() => setActiveTab('profiles')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.navIcon}>👤</Text>
-          <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'profiles' && { color: theme.accent }]}>
-            Profiles
-          </Text>
-        </TouchableOpacity>
+      {/* State-of-the-Art Floating Bottom Navigation Bar */}
+      <View style={styles.navBarContainer}>
+        <View style={[styles.floatingNavBar, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+          <TouchableOpacity
+            style={[styles.navItem, activeTab === 'profiles' && [styles.activeNavItem, { borderColor: theme.accent, backgroundColor: theme.badgeBg }]]}
+            onPress={() => setActiveTab('profiles')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.navIcon}>👤</Text>
+            <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'profiles' && { color: theme.accent, fontWeight: '900' }]}>
+              Profiles
+            </Text>
+            {activeTab === 'profiles' && <View style={[styles.activeDot, { backgroundColor: theme.accent }]} />}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'bookings' && { backgroundColor: theme.badgeBg }]}
-          onPress={() => setActiveTab('bookings')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.navIcon}>🏟️</Text>
-          <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'bookings' && { color: theme.accent }]}>
-            Bookings
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.navItem, activeTab === 'bookings' && [styles.activeNavItem, { borderColor: theme.accent, backgroundColor: theme.badgeBg }]]}
+            onPress={() => setActiveTab('bookings')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.navIcon}>🏟️</Text>
+            <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'bookings' && { color: theme.accent, fontWeight: '900' }]}>
+              Bookings
+            </Text>
+            {activeTab === 'bookings' && <View style={[styles.activeDot, { backgroundColor: theme.accent }]} />}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'teams' && { backgroundColor: theme.badgeBg }]}
-          onPress={() => setActiveTab('teams')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.navIcon}>🛡️</Text>
-          <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'teams' && { color: theme.accent }]}>
-            Teams
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.navItem, activeTab === 'teams' && [styles.activeNavItem, { borderColor: theme.accent, backgroundColor: theme.badgeBg }]]}
+            onPress={() => setActiveTab('teams')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.navIcon}>🛡️</Text>
+            <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'teams' && { color: theme.accent, fontWeight: '900' }]}>
+              Teams
+            </Text>
+            {activeTab === 'teams' && <View style={[styles.activeDot, { backgroundColor: theme.accent }]} />}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Cricket Live Score Modal */}
@@ -171,25 +176,38 @@ const styles = StyleSheet.create({
   content: {
     flex: 1
   },
-  navBar: {
+  navBarContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 24 : 16,
+    left: 16,
+    right: 16,
+    zIndex: 100
+  },
+  floatingNavBar: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 26,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     justifyContent: 'space-around',
     alignItems: 'center',
-    minHeight: 74,
-    elevation: 12,
-    zIndex: 50
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 16
   },
   navItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
+    paddingVertical: 8,
     marginHorizontal: 4,
-    borderRadius: 12
+    borderRadius: 16,
+    position: 'relative'
+  },
+  activeNavItem: {
+    borderWidth: 1
   },
   navIcon: {
     fontSize: 16,
@@ -198,5 +216,11 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 11,
     fontWeight: '800'
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 3
   }
 });
