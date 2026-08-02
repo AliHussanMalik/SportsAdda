@@ -188,6 +188,19 @@ function createAuthRouter(pool) {
     });
   });
 
+  // Get Current Authenticated User Profile
+  router.get('/me', authenticateToken, async (req, res) => {
+    try {
+      const result = await pool.query('SELECT * FROM player_profiles WHERE user_id = $1', [req.user.user_id]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ success: false, error: 'User profile not found' });
+      }
+      res.json({ success: true, user: result.rows[0] });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // Fetch Profiles List
   router.get('/profiles', async (req, res) => {
     try {
@@ -203,15 +216,124 @@ function createAuthRouter(pool) {
     }
   });
 
-  // Toggle Subscription Tier
+  // Create Player Profile Endpoint
+  router.post('/profiles', async (req, res) => {
+    try {
+      const {
+        display_name,
+        email,
+        role = 'PLAYER',
+        primary_sport = 'FUTSAL',
+        preferred_role = 'All-Rounder',
+        jersey_number = 10,
+        subscription_tier = 'PRO',
+        is_captain = false,
+        is_coach = false,
+        is_keeper = false,
+        keeper_type = 'NONE'
+      } = req.body;
+
+      if (!display_name || display_name.trim().length === 0) {
+        return res.status(400).json({ success: false, error: 'Display name is required' });
+      }
+
+      const result = await pool.query(
+        `INSERT INTO player_profiles 
+          (display_name, email, role, primary_sport, preferred_role, jersey_number, subscription_tier, is_captain, is_coach, is_keeper, keeper_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING *`,
+        [display_name, email || null, role, primary_sport, preferred_role, jersey_number, subscription_tier, is_captain, is_coach, is_keeper, keeper_type]
+      );
+
+      const newProfile = result.rows[0];
+
+      // If keeper, initialize keeper_stats entry
+      if (is_keeper) {
+        await pool.query(
+          `INSERT INTO keeper_stats (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
+          [newProfile.user_id]
+        );
+      }
+
+      res.status(201).json({ success: true, profile: newProfile });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Update Player Profile Fields (full patch)
   router.patch('/profiles/:user_id', async (req, res) => {
     try {
       const { user_id } = req.params;
-      const { subscription_tier } = req.body;
+      const {
+        display_name,
+        primary_sport,
+        preferred_role,
+        jersey_number,
+        subscription_tier,
+        is_captain,
+        is_coach,
+        is_keeper,
+        keeper_type,
+        role
+      } = req.body;
+
+      const currentRes = await pool.query('SELECT * FROM player_profiles WHERE user_id = $1', [user_id]);
+      if (currentRes.rows.length === 0) {
+        return res.status(404).json({ success: false, error: 'Profile not found' });
+      }
+
+      const current = currentRes.rows[0];
+
+      const updated = {
+        display_name: display_name !== undefined ? display_name : current.display_name,
+        primary_sport: primary_sport !== undefined ? primary_sport : current.primary_sport,
+        preferred_role: preferred_role !== undefined ? preferred_role : current.preferred_role,
+        jersey_number: jersey_number !== undefined ? jersey_number : current.jersey_number,
+        subscription_tier: subscription_tier !== undefined ? subscription_tier : current.subscription_tier,
+        is_captain: is_captain !== undefined ? is_captain : current.is_captain,
+        is_coach: is_coach !== undefined ? is_coach : current.is_coach,
+        is_keeper: is_keeper !== undefined ? is_keeper : current.is_keeper,
+        keeper_type: keeper_type !== undefined ? keeper_type : current.keeper_type,
+        role: role !== undefined ? role : current.role
+      };
+
       const result = await pool.query(
-        'UPDATE player_profiles SET subscription_tier = $1 WHERE user_id = $2 RETURNING *',
-        [subscription_tier, user_id]
+        `UPDATE player_profiles SET
+          display_name = $1,
+          primary_sport = $2,
+          preferred_role = $3,
+          jersey_number = $4,
+          subscription_tier = $5,
+          is_captain = $6,
+          is_coach = $7,
+          is_keeper = $8,
+          keeper_type = $9,
+          role = $10
+         WHERE user_id = $11
+         RETURNING *`,
+        [
+          updated.display_name,
+          updated.primary_sport,
+          updated.preferred_role,
+          updated.jersey_number,
+          updated.subscription_tier,
+          updated.is_captain,
+          updated.is_coach,
+          updated.is_keeper,
+          updated.keeper_type,
+          updated.role,
+          user_id
+        ]
       );
+
+      if (updated.is_keeper) {
+        await pool.query(
+          `INSERT INTO keeper_stats (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
+          [user_id]
+        );
+      }
+
       res.json({ success: true, profile: result.rows[0] });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });

@@ -60,10 +60,24 @@ export default function AuthModuleView() {
       const data = await res.json();
       if (data.success) {
         setShowModal(false);
+        setFormData({
+          display_name: '',
+          primary_sport: 'FUTSAL',
+          preferred_role: 'Forward',
+          jersey_number: 10,
+          subscription_tier: 'PRO',
+          is_captain: false,
+          is_coach: false,
+          is_keeper: false,
+          keeper_type: 'NONE'
+        });
         fetchProfiles();
+      } else {
+        alert(data.error || 'Failed to save player profile');
       }
     } catch (e) {
       console.error(e);
+      alert('Error connecting to backend API');
     }
   };
 
