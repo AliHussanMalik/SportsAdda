@@ -26,7 +26,10 @@ const RegisterSchema = z.object({
 });
 
 const LoginSchema = z.object({
-  email: z.string().email(),
+  identifier: z.string().optional(),
+  display_name: z.string().optional(),
+  name: z.string().optional(),
+  email: z.string().optional(),
   password: z.string().min(1)
 });
 
@@ -80,16 +83,26 @@ function authorizeRoles(...allowedRoles) {
 function createAuthRouter(pool) {
   const router = express.Router();
 
-  // Register User
+  // Register User with Name + Password
   router.post('/register', authLimiter, async (req, res) => {
     try {
-      const validated = RegisterSchema.parse(req.body);
-      const { display_name, email, password, role, primary_sport, preferred_role, jersey_number } = validated;
+      const { display_name, email, password, role, primary_sport, preferred_role, jersey_number } = req.body;
 
-      // Check existing email
-      const existing = await pool.query('SELECT user_id FROM player_profiles WHERE email = $1', [email]);
+      if (!display_name || display_name.trim().length < 2) {
+        return res.status(400).json({ success: false, error: 'Display Name is required (min 2 characters)' });
+      }
+      if (!password || password.trim().length < 4) {
+        return res.status(400).json({ success: false, error: 'Password must be at least 4 characters long' });
+      }
+
+      // Check existing display_name or email
+      const existing = await pool.query(
+        'SELECT user_id FROM player_profiles WHERE LOWER(display_name) = LOWER($1) OR (email IS NOT NULL AND LOWER(email) = LOWER($2))',
+        [display_name.trim(), email ? email.trim() : '']
+      );
+
       if (existing.rows.length > 0) {
-        return res.status(400).json({ success: false, error: 'Email is already registered' });
+        return res.status(400).json({ success: false, error: 'Name or Email is already taken' });
       }
 
       const password_hash = await bcrypt.hash(password, 10);
@@ -97,8 +110,16 @@ function createAuthRouter(pool) {
       const result = await pool.query(
         `INSERT INTO player_profiles (display_name, email, password_hash, role, primary_sport, preferred_role, jersey_number)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING user_id, display_name, email, role, subscription_tier, created_at`,
-        [display_name, email, password_hash, role, primary_sport, preferred_role || 'All-Rounder', jersey_number || 10]
+         RETURNING *`,
+        [
+          display_name.trim(),
+          email ? email.trim() : null,
+          password_hash,
+          role || 'PLAYER',
+          primary_sport || 'FUTSAL',
+          preferred_role || 'All-Rounder',
+          jersey_number || 10
+        ]
       );
 
       const newUser = result.rows[0];
@@ -112,21 +133,28 @@ function createAuthRouter(pool) {
         refreshToken
       });
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ success: false, error: 'Validation Error', details: err.errors });
-      }
       res.status(500).json({ success: false, error: err.message });
     }
   });
 
-  // Login User
+  // Login User with Name or Email + Password
   router.post('/login', authLimiter, async (req, res) => {
     try {
-      const { email, password } = LoginSchema.parse(req.body);
+      const parsed = LoginSchema.parse(req.body);
+      const queryParam = parsed.identifier || parsed.display_name || parsed.name || parsed.email;
+      const { password } = parsed;
 
-      const result = await pool.query('SELECT * FROM player_profiles WHERE email = $1', [email]);
+      if (!queryParam) {
+        return res.status(400).json({ success: false, error: 'Please enter your Name or Email' });
+      }
+
+      const result = await pool.query(
+        'SELECT * FROM player_profiles WHERE LOWER(display_name) = LOWER($1) OR LOWER(email) = LOWER($1)',
+        [queryParam.trim()]
+      );
+
       if (result.rows.length === 0) {
-        return res.status(401).json({ success: false, error: 'Invalid email or password' });
+        return res.status(401).json({ success: false, error: 'Invalid Name/Email or Password' });
       }
 
       const user = result.rows[0];
@@ -134,7 +162,7 @@ function createAuthRouter(pool) {
       if (user.password_hash) {
         const isValid = await bcrypt.compare(password, user.password_hash);
         if (!isValid) {
-          return res.status(401).json({ success: false, error: 'Invalid email or password' });
+          return res.status(401).json({ success: false, error: 'Invalid Name/Email or Password' });
         }
       }
 
@@ -149,8 +177,13 @@ function createAuthRouter(pool) {
           email: user.email,
           role: user.role,
           subscription_tier: user.subscription_tier,
+          primary_sport: user.primary_sport,
+          preferred_role: user.preferred_role,
+          jersey_number: user.jersey_number,
           is_captain: user.is_captain,
-          is_keeper: user.is_keeper
+          is_coach: user.is_coach,
+          is_keeper: user.is_keeper,
+          keeper_type: user.keeper_type
         },
         accessToken,
         refreshToken
@@ -247,7 +280,6 @@ function createAuthRouter(pool) {
 
       const newProfile = result.rows[0];
 
-      // If keeper, initialize keeper_stats entry
       if (is_keeper) {
         await pool.query(
           `INSERT INTO keeper_stats (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
@@ -261,10 +293,15 @@ function createAuthRouter(pool) {
     }
   });
 
-  // Update Player Profile Fields (full patch)
-  router.patch('/profiles/:user_id', async (req, res) => {
+  // Update Player Profile Fields (with Ownership Check)
+  router.patch('/profiles/:user_id', authenticateToken, async (req, res) => {
     try {
       const { user_id } = req.params;
+
+      // Ownership enforcement: User can ONLY edit their own profile unless ADMIN
+      if (req.user.role !== 'ADMIN' && req.user.user_id !== user_id) {
+        return res.status(403).json({ success: false, error: 'Unauthorized: You can only edit your own profile' });
+      }
       const {
         display_name,
         primary_sport,

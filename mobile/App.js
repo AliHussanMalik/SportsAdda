@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Platform, Statu
 import { StatusBar } from 'expo-status-bar';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
 import AuthScreen from './screens/AuthScreen';
 import BookingsScreen from './screens/BookingsScreen';
 import TeamsScreen from './screens/TeamsScreen';
@@ -10,9 +11,11 @@ import CricketLiveModal from './components/CricketLiveModal';
 import LiveScoringConsoleModal from './components/LiveScoringConsoleModal';
 import SportsStoreModal from './components/SportsStoreModal';
 import TournamentTreeModal from './components/TournamentTreeModal';
+import SidebarDrawer from './components/SidebarDrawer';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState('bookings');
+  const [showSidebar, setShowSidebar] = useState(false);
   const [showLiveCricket, setShowLiveCricket] = useState(false);
   const [showScoringConsole, setShowScoringConsole] = useState(false);
   const [showSportsStore, setShowSportsStore] = useState(false);
@@ -38,57 +41,40 @@ function MainApp() {
 
       {/* Top Header Bar */}
       <View style={[styles.headerBar, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={[styles.brandTitle, { color: theme.text }]}>SportsAdda</Text>
-          <Text style={[styles.countryTag, { color: theme.subText }]}> 🇵🇰 PK</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          {/* Single Hamburger Menu Toggle for Sidebar */}
+          <TouchableOpacity
+            style={[styles.hamburgerBtn, { backgroundColor: theme.badgeBg, borderColor: theme.border }]}
+            onPress={() => setShowSidebar(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 18, color: theme.text, fontWeight: '800' }}>≡</Text>
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[styles.brandTitle, { color: theme.text }]}>SportsAdda</Text>
+            <View style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 }}>
+              <Text style={{ fontSize: 10, color: theme.accent, fontWeight: '800' }}>PK</Text>
+            </View>
+          </View>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {/* Tournament Tree Button */}
-          <TouchableOpacity
-            style={[styles.liveScoreBtn, { backgroundColor: 'rgba(139, 92, 246, 0.15)', borderColor: '#8b5cf6' }]}
-            onPress={() => setShowTournaments(true)}
-          >
-            <Text style={[styles.liveScoreText, { color: '#8b5cf6' }]}>🏆 Brackets</Text>
-          </TouchableOpacity>
-
-          {/* Sports Store & Ads Button */}
-          <TouchableOpacity
-            style={[styles.liveScoreBtn, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#f59e0b' }]}
-            onPress={() => setShowSportsStore(true)}
-          >
-            <Text style={[styles.liveScoreText, { color: '#f59e0b' }]}>🛒 Store</Text>
-          </TouchableOpacity>
-
-          {/* Live Scoring Console Button */}
-          <TouchableOpacity
-            style={[styles.liveScoreBtn, { backgroundColor: 'rgba(6, 182, 212, 0.15)', borderColor: '#06b6d4' }]}
-            onPress={() => setShowScoringConsole(true)}
-          >
-            <Text style={[styles.liveScoreText, { color: '#06b6d4' }]}>⚡ Score</Text>
-          </TouchableOpacity>
-
-          {/* Live Scorecard Button */}
-          <TouchableOpacity
-            style={[styles.liveScoreBtn, { backgroundColor: theme.badgeBg, borderColor: theme.accent }]}
-            onPress={() => setShowLiveCricket(true)}
-          >
-            <View style={[styles.liveDot, { backgroundColor: theme.accent }]} />
-            <Text style={[styles.liveScoreText, { color: theme.accent }]}>🏏 RSS</Text>
-          </TouchableOpacity>
+        {/* Header Right Status Pill */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.accent }} />
+          <Text style={{ fontSize: 11, fontWeight: '700', color: theme.subText }}>Online</Text>
         </View>
       </View>
 
       {/* Main Screen Body */}
       <View style={styles.content}>{renderScreen()}</View>
 
-      {/* Bottom Navigation Bar */}
+      {/* Responsive Bottom Navigation Bar with Safe Area Inset Padding */}
       <View style={[styles.navBar, { backgroundColor: theme.navBg, borderTopColor: theme.border }]}>
         <TouchableOpacity
           style={[styles.navItem, activeTab === 'profiles' && { backgroundColor: theme.badgeBg }]}
           onPress={() => setActiveTab('profiles')}
         >
-          <Text style={styles.navIcon}>👤</Text>
           <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'profiles' && { color: theme.accent }]}>
             Profiles
           </Text>
@@ -98,7 +84,6 @@ function MainApp() {
           style={[styles.navItem, activeTab === 'bookings' && { backgroundColor: theme.badgeBg }]}
           onPress={() => setActiveTab('bookings')}
         >
-          <Text style={styles.navIcon}>📅</Text>
           <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'bookings' && { color: theme.accent }]}>
             Bookings
           </Text>
@@ -108,7 +93,6 @@ function MainApp() {
           style={[styles.navItem, activeTab === 'teams' && { backgroundColor: theme.badgeBg }]}
           onPress={() => setActiveTab('teams')}
         >
-          <Text style={styles.navIcon}>🛡️</Text>
           <Text style={[styles.navLabel, { color: theme.subText }, activeTab === 'teams' && { color: theme.accent }]}>
             Teams
           </Text>
@@ -126,6 +110,18 @@ function MainApp() {
 
       {/* Tournament Tree Graph & Organizer Rating Modal */}
       <TournamentTreeModal visible={showTournaments} onClose={() => setShowTournaments(false)} />
+
+      {/* Navigation Sidebar Drawer */}
+      <SidebarDrawer
+        visible={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenScoringConsole={() => setShowScoringConsole(true)}
+        onOpenTournaments={() => setShowTournaments(true)}
+        onOpenSportsStore={() => setShowSportsStore(true)}
+        onOpenLiveCricket={() => setShowLiveCricket(true)}
+      />
     </SafeAreaView>
   );
 }
@@ -133,7 +129,9 @@ function MainApp() {
 export default function App() {
   return (
     <ThemeProvider>
-      <MainApp />
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
@@ -141,13 +139,21 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0
+    paddingTop: Platform.OS === 'android' ? (RNStatusBar.currentHeight || 24) : 0
+  },
+  hamburgerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1
   },
@@ -156,50 +162,30 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.5
   },
-  countryTag: {
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  liveScoreBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 14,
-    borderWidth: 1
-  },
-  liveDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    marginRight: 3
-  },
-  liveScoreText: {
-    fontSize: 9.5,
-    fontWeight: '800'
-  },
   content: {
     flex: 1
   },
   navBar: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    paddingVertical: 8,
-    paddingBottom: 16,
-    justifyContent: 'space-around'
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 20,
+    paddingHorizontal: 16,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    minHeight: 64,
+    elevation: 10,
+    zIndex: 50
   },
   navItem: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
     borderRadius: 12
   },
-  navIcon: {
-    fontSize: 20
-  },
   navLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 2
+    fontSize: 13,
+    fontWeight: '800'
   }
 });

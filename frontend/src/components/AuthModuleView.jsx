@@ -1,21 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Shield, Crown, Award, UserPlus, Sparkles, Activity } from 'lucide-react';
+import { UserCheck, Shield, Crown, Award, LogIn, LogOut, KeyRound, Sparkles, Activity, Lock, User } from 'lucide-react';
 
 export default function AuthModuleView() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [accessToken, setAccessToken] = useState(localStorage.getItem('sportsadda_token') || null);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    display_name: '',
-    primary_sport: 'FUTSAL',
-    preferred_role: 'Forward',
-    jersey_number: 10,
-    subscription_tier: 'PRO',
-    is_captain: false,
-    is_coach: false,
-    is_keeper: false,
-    keeper_type: 'NONE'
-  });
+
+  // Tab mode for unauthenticated users ('login' or 'register')
+  const [mode, setMode] = useState('login');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Credentials
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
+  const [primarySport, setPrimarySport] = useState('FUTSAL');
+  const [jerseyNumber, setJerseyNumber] = useState(10);
+
+  // Edit My Profile state
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editJersey, setEditJersey] = useState(10);
 
   const fetchProfiles = async () => {
     try {
@@ -31,53 +37,135 @@ export default function AuthModuleView() {
     }
   };
 
-  useEffect(() => {
-    fetchProfiles();
-  }, []);
-
-  const handleToggleTier = async (userId, currentTier) => {
-    const nextTier = currentTier === 'PRO' ? 'FREE' : 'PRO';
+  const fetchCurrentUser = async (token) => {
+    if (!token) return;
     try {
-      const res = await fetch(`/api/auth/profiles/${userId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription_tier: nextTier })
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.ok) fetchProfiles();
+      const data = await res.json();
+      if (data.success) {
+        setCurrentUser(data.user);
+      } else {
+        localStorage.removeItem('sportsadda_token');
+        setAccessToken(null);
+      }
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleCreateProfile = async (e) => {
+  useEffect(() => {
+    fetchProfiles();
+    if (accessToken) {
+      fetchCurrentUser(accessToken);
+    }
+  }, [accessToken]);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
+    if (!displayName || !password) {
+      setErrorMessage('Please enter your Name and Password');
+      return;
+    }
+    setSubmitting(true);
     try {
-      const res = await fetch('/api/auth/profiles', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ identifier: displayName, password })
       });
       const data = await res.json();
       if (data.success) {
-        setShowModal(false);
-        setFormData({
-          display_name: '',
-          primary_sport: 'FUTSAL',
-          preferred_role: 'Forward',
-          jersey_number: 10,
-          subscription_tier: 'PRO',
-          is_captain: false,
-          is_coach: false,
-          is_keeper: false,
-          keeper_type: 'NONE'
-        });
+        localStorage.setItem('sportsadda_token', data.accessToken);
+        setAccessToken(data.accessToken);
+        setCurrentUser(data.user);
+        setDisplayName('');
+        setPassword('');
         fetchProfiles();
       } else {
-        alert(data.error || 'Failed to save player profile');
+        setErrorMessage(data.error || 'Invalid credentials');
       }
-    } catch (e) {
-      console.error(e);
-      alert('Error connecting to backend API');
+    } catch (err) {
+      setErrorMessage('Failed to connect to backend server');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    if (!displayName || displayName.trim().length < 2) {
+      setErrorMessage('Display Name must be at least 2 characters');
+      return;
+    }
+    if (!password || password.length < 4) {
+      setErrorMessage('Password must be at least 4 characters');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          display_name: displayName,
+          password: password,
+          primary_sport: primarySport,
+          jersey_number: parseInt(jerseyNumber) || 10
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('sportsadda_token', data.accessToken);
+        setAccessToken(data.accessToken);
+        setCurrentUser(data.user);
+        setDisplayName('');
+        setPassword('');
+        fetchProfiles();
+      } else {
+        setErrorMessage(data.error || 'Registration failed');
+      }
+    } catch (err) {
+      setErrorMessage('Failed to connect to backend server');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('sportsadda_token');
+    setAccessToken(null);
+    setCurrentUser(null);
+  };
+
+  const handleSaveOwnProfile = async (e) => {
+    e.preventDefault();
+    if (!currentUser || !accessToken) return;
+    try {
+      const res = await fetch(`/api/auth/profiles/${currentUser.user_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          display_name: editName,
+          jersey_number: parseInt(editJersey) || currentUser.jersey_number
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCurrentUser(data.profile);
+        setEditMode(false);
+        fetchProfiles();
+      } else {
+        alert(data.error || 'Failed to update profile');
+      }
+    } catch (err) {
+      alert('Error updating profile');
     }
   };
 
@@ -86,134 +174,109 @@ export default function AuthModuleView() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <UserCheck style={{ color: '#10b981' }} /> Auth & Specialized Player Profiles
+            <UserCheck style={{ color: '#10b981' }} /> Player Authentication & Profiles
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Manage player profiles, specialized role permissions (Captain, Coach, Keeper), and subscription tiers.
+            Simple Name + Password Login, Google Password Manager integration, and profile ownership controls.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <UserPlus size={18} /> Create Player Profile
-        </button>
+        {currentUser && (
+          <button className="btn btn-secondary" onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444' }}>
+            <LogOut size={16} /> Log Out ({currentUser.display_name})
+          </button>
+        )}
       </div>
 
-      {loading ? (
-        <div style={{ padding: '40px', textAlgin: 'center', color: 'var(--text-muted)' }}>Loading profiles...</div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
-          {profiles.map((p) => (
-            <div key={p.user_id} className="glass-panel" style={{ padding: '20px', position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                  <div style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #10b981, #06b6d4)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.25rem',
-                    fontWeight: 800,
-                    color: '#fff'
-                  }}>
-                    #{p.jersey_number || '0'}
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff' }}>{p.display_name}</h3>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '8px', marginTop: '2px' }}>
-                      <span>{p.primary_sport}</span> • <span>{p.preferred_role}</span>
-                    </div>
-                  </div>
-                </div>
+      {/* ------------------------------------------------------------- */}
+      {/* If NOT logged in: Show Log In / Sign Up Card Form              */}
+      {/* ------------------------------------------------------------- */}
+      {!currentUser ? (
+        <div style={{ maxWidth: '460px', margin: '0 auto 36px auto' }} className="glass-panel" style={{ padding: '28px', borderRadius: '20px', maxWidth: '480px', margin: '0 auto 36px auto' }}>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: 'rgba(0,0,0,0.3)', padding: '4px', borderRadius: '12px' }}>
+            <button
+              onClick={() => { setMode('login'); setErrorMessage(''); }}
+              style={{
+                flex: 1,
+                padding: '10px',
+                borderRadius: '8px',
+                border: 'none',
+                background: mode === 'login' ? '#10b981' : 'transparent',
+                color: '#fff',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <LogIn size={16} /> Log In
+            </button>
+            <button
+              onClick={() => { setMode('register'); setErrorMessage(''); }}
+              style={{
+                flex: 1,
+                padding: '10px',
+                borderRadius: '8px',
+                border: 'none',
+                background: mode === 'register' ? '#10b981' : 'transparent',
+                color: '#fff',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <UserPlus size={16} /> Sign Up
+            </button>
+          </div>
 
-                <span 
-                  className={`badge ${p.subscription_tier === 'PRO' ? 'badge-pro' : 'badge-free'}`}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => handleToggleTier(p.user_id, p.subscription_tier)}
-                  title="Click to toggle PRO / FREE tier"
-                >
-                  <Sparkles size={12} /> {p.subscription_tier}
-                </span>
-              </div>
-
-              {/* Badges row */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                {p.is_captain && (
-                  <span className="badge badge-captain" title="Toss rights & Playing XI manager">
-                    <Crown size={12} /> Captain
-                  </span>
-                )}
-                {p.is_coach && (
-                  <span className="badge badge-coach" title="Tactical formation & notes">
-                    <Shield size={12} /> Coach
-                  </span>
-                )}
-                {p.is_keeper && (
-                  <span className="badge badge-keeper" title="Dedicated Keeper Stats">
-                    <Award size={12} /> {p.keeper_type}
-                  </span>
-                )}
-              </div>
-
-              {/* Keeper Stats Box if Keeper */}
-              {p.is_keeper && (
-                <div style={{
-                  background: 'rgba(6, 182, 212, 0.08)',
-                  border: '1px solid rgba(6, 182, 212, 0.2)',
-                  borderRadius: '12px',
-                  padding: '12px',
-                  marginTop: '10px'
-                }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#22d3ee', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Activity size={14} /> Specialized Keeper Metrics
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
-                    <div style={{ background: 'rgba(0,0,0,0.3)', padding: '6px', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>{p.total_saves || 0}</div>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Saves</div>
-                    </div>
-                    <div style={{ background: 'rgba(0,0,0,0.3)', padding: '6px', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>{p.clean_sheets || 0}</div>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Clean Sheets</div>
-                    </div>
-                    <div style={{ background: 'rgba(0,0,0,0.3)', padding: '6px', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>{p.stumpings || p.penalties_saved || 0}</div>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{p.keeper_type === 'WICKETKEEPER' ? 'Stumpings' : 'Penalties Saved'}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
+          {errorMessage && (
+            <div style={{ background: 'rgba(239, 68, 68, 0.15)', borderLeft: '4px solid #ef4444', color: '#f87171', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem' }}>
+              ⚠️ {errorMessage}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {/* Modal to Create Profile */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '28px', borderRadius: '20px' }}>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>
-              Add New Player Profile
-            </h3>
-            <form onSubmit={handleCreateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Display Name</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.display_name}
-                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
-                />
-              </div>
+          <form onSubmit={mode === 'login' ? handleLogin : handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <User size={14} /> Display Name / User Name
+              </label>
+              <input
+                type="text"
+                required
+                autoComplete="username"
+                placeholder="e.g. Cristiano Ronaldo"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
+              />
+            </div>
 
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Lock size={14} /> Password
+              </label>
+              <input
+                type="password"
+                required
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
+              />
+            </div>
+
+            {mode === 'register' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Primary Sport</label>
                   <select
-                    value={formData.primary_sport}
-                    onChange={(e) => setFormData({ ...formData, primary_sport: e.target.value })}
+                    value={primarySport}
+                    onChange={(e) => setPrimarySport(e.target.value)}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
                   >
                     <option value="FUTSAL">Futsal ⚽</option>
@@ -225,50 +288,145 @@ export default function AuthModuleView() {
                   <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Jersey Number</label>
                   <input
                     type="number"
-                    value={formData.jersey_number}
-                    onChange={(e) => setFormData({ ...formData, jersey_number: parseInt(e.target.value) })}
+                    value={jerseyNumber}
+                    onChange={(e) => setJerseyNumber(e.target.value)}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
                   />
                 </div>
               </div>
+            )}
 
+            <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: '8px', padding: '12px' }}>
+              {submitting ? 'Authenticating...' : mode === 'login' ? '🔑 Sign In to Account' : '🚀 Create Account'}
+            </button>
+
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '6px', fontStyle: 'italic' }}>
+              💡 Password will be saved automatically by your browser or Google Password Manager.
+            </div>
+          </form>
+        </div>
+      ) : (
+        /* ------------------------------------------------------------- */
+        /* If LOGGED IN: Show My Profile & Ownership Controls            */
+        /* ------------------------------------------------------------- */
+        <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', marginBottom: '32px', border: '2px solid #10b981' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                fontWeight: 800,
+                color: '#fff'
+              }}>
+                #{currentUser.jersey_number || 10}
+              </div>
               <div>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Role Badges</label>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={formData.is_captain}
-                      onChange={(e) => setFormData({ ...formData, is_captain: e.target.checked })}
-                    /> 👑 Captain
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={formData.is_coach}
-                      onChange={(e) => setFormData({ ...formData, is_coach: e.target.checked })}
-                    /> 📋 Coach
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={formData.is_keeper}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        is_keeper: e.target.checked,
-                        keeper_type: e.target.checked ? (formData.primary_sport === 'CRICKET' ? 'WICKETKEEPER' : 'GOALKEEPER') : 'NONE'
-                      })}
-                    /> 🧤 Keeper
-                  </label>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>
+                  {currentUser.display_name} <span style={{ fontSize: '0.85rem', color: '#10b981', marginLeft: '6px' }}>(Your Account)</span>
+                </h3>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', gap: '8px', marginTop: '2px' }}>
+                  <span>{currentUser.primary_sport}</span> • <span>{currentUser.preferred_role || 'Player'}</span>
                 </div>
               </div>
+            </div>
 
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Profile</button>
-              </div>
-            </form>
+            <span className={`badge ${currentUser.subscription_tier === 'PRO' ? 'badge-pro' : 'badge-free'}`}>
+              <Sparkles size={12} /> {currentUser.subscription_tier}
+            </span>
           </div>
+
+          {editMode ? (
+            <form onSubmit={handleSaveOwnProfile} style={{ marginTop: '20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Display Name"
+                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff' }}
+              />
+              <input
+                type="number"
+                value={editJersey}
+                onChange={(e) => setEditJersey(e.target.value)}
+                placeholder="Jersey #"
+                style={{ width: '80px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff' }}
+              />
+              <button type="submit" className="btn btn-primary">Save Changes</button>
+              <button type="button" className="btn btn-secondary" onClick={() => setEditMode(false)}>Cancel</button>
+            </form>
+          ) : (
+            <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
+              <button className="btn btn-secondary" onClick={() => { setEditName(currentUser.display_name); setEditJersey(currentUser.jersey_number); setEditMode(true); }}>
+                ✏️ Edit My Profile
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* Public Players Directory (Read-Only View for Other Players)    */}
+      {/* ------------------------------------------------------------- */}
+      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>
+        👥 Registered Players Directory ({profiles.length})
+      </h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '20px' }}>
+        (You can view all registered players below. Profile modifications are only allowed for your own account.)
+      </p>
+
+      {loading ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading profiles...</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+          {profiles.map((p) => {
+            const isSelf = currentUser && currentUser.user_id === p.user_id;
+            return (
+              <div key={p.user_id} className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: isSelf ? '2px solid #10b981' : '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '50%',
+                      background: isSelf ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'rgba(255,255,255,0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.1rem',
+                      fontWeight: 800,
+                      color: '#fff'
+                    }}>
+                      #{p.jersey_number || '0'}
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
+                        {p.display_name} {isSelf && <span style={{ fontSize: '0.75rem', color: '#10b981' }}>(You)</span>}
+                      </h4>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        {p.primary_sport} • {p.preferred_role || 'Player'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className={`badge ${p.subscription_tier === 'PRO' ? 'badge-pro' : 'badge-free'}`}>
+                    {p.subscription_tier}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {p.is_captain && <span className="badge badge-captain"><Crown size={12} /> Captain</span>}
+                  {p.is_coach && <span className="badge badge-coach"><Shield size={12} /> Coach</span>}
+                  {p.is_keeper && <span className="badge badge-keeper"><Award size={12} /> {p.keeper_type}</span>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
