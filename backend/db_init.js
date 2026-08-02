@@ -77,6 +77,10 @@ CREATE TABLE IF NOT EXISTS indoor_arenas (
 
 -- Arena Geo-Location & Amenities Extension
 ALTER TABLE indoor_arenas 
+ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES player_profiles(user_id) ON DELETE CASCADE,
+ADD COLUMN IF NOT EXISTS city VARCHAR(100) DEFAULT 'Lahore',
+ADD COLUMN IF NOT EXISTS hourly_rate DECIMAL(10,2) DEFAULT 2500.00,
+ADD COLUMN IF NOT EXISTS facilities JSONB DEFAULT '[]'::jsonb,
 ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8),
 ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8),
 ADD COLUMN IF NOT EXISTS avg_rating DECIMAL(2,1) DEFAULT 0.0,
@@ -88,8 +92,33 @@ ADD COLUMN IF NOT EXISTS has_changing_room BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS has_canteen BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS has_prayer_area BOOLEAN DEFAULT FALSE;
 
+-- Multi-Store Ownership for Indoor Owners
+CREATE TABLE IF NOT EXISTS owner_stores (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner_id UUID REFERENCES player_profiles(user_id) ON DELETE CASCADE NOT NULL,
+    arena_id UUID REFERENCES indoor_arenas(id) ON DELETE SET NULL,
+    store_name VARCHAR(150) NOT NULL,
+    store_address TEXT NOT NULL,
+    contact_phone VARCHAR(50),
+    store_type VARCHAR(50) DEFAULT 'EQUIPMENT_PRO_SHOP',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Store Inventory Management
+CREATE TABLE IF NOT EXISTS store_inventory (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    store_id UUID REFERENCES owner_stores(id) ON DELETE CASCADE NOT NULL,
+    item_name VARCHAR(150) NOT NULL,
+    category VARCHAR(50) DEFAULT 'CRICKET_GEAR',
+    price DECIMAL(10,2) NOT NULL,
+    stock_quantity INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_arena_location ON indoor_arenas (latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_arena_rating ON indoor_arenas (avg_rating);
+CREATE INDEX IF NOT EXISTS idx_owner_stores ON owner_stores (owner_id);
 
 CREATE TABLE IF NOT EXISTS arena_courts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

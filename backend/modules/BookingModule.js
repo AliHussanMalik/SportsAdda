@@ -4,11 +4,12 @@ const QRCode = require('qrcode');
 function createBookingRouter(pool) {
   const router = express.Router();
 
-  // Get all indoor arenas and their courts
+  // Get all indoor arenas with court details & facilities
   router.get('/arenas', async (req, res) => {
     try {
       const query = `
-        SELECT a.id AS arena_id, a.name AS arena_name, a.address,
+        SELECT a.id AS arena_id, a.name AS arena_name, a.address, a.city, a.hourly_rate AS arena_hourly_rate,
+               a.facilities, a.owner_id, a.has_ac, a.has_parking, a.has_cameras, a.has_changing_room, a.has_canteen,
                c.id AS court_id, c.court_name, c.sport_type, c.hourly_rate
         FROM indoor_arenas a
         LEFT JOIN arena_courts c ON a.id = c.arena_id
@@ -24,6 +25,17 @@ function createBookingRouter(pool) {
             id: r.arena_id,
             name: r.arena_name,
             address: r.address,
+            city: r.city || 'Lahore',
+            hourly_rate: parseFloat(r.arena_hourly_rate || 2500),
+            facilities: typeof r.facilities === 'string' ? JSON.parse(r.facilities) : (r.facilities || []),
+            owner_id: r.owner_id,
+            amenities: {
+              ac: r.has_ac,
+              parking: r.has_parking,
+              cameras: r.has_cameras,
+              changing_room: r.has_changing_room,
+              canteen: r.has_canteen
+            },
             courts: []
           };
         }
@@ -43,16 +55,55 @@ function createBookingRouter(pool) {
     }
   });
 
-  // Create new indoor arena & court setup
+  // Get venues owned by specific Indoor Owner
+  router.get('/owner/arenas', async (req, res) => {
+    try {
+      const ownerId = req.query.owner_id || req.headers['x-user-id'];
+      if (!ownerId) {
+        return res.status(400).json({ success: false, error: 'owner_id required' });
+      }
+      const { rows } = await pool.query(
+        `SELECT * FROM indoor_arenas WHERE owner_id = $1 ORDER BY created_at DESC;`,
+        [ownerId]
+      );
+      res.json({ success: true, arenas: rows });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Create new indoor arena & facility setup for Indoor Owner
   router.post('/arenas', async (req, res) => {
     try {
-      const { name, address, courts } = req.body;
+      const { name, address, city, hourly_rate, facilities, owner_id, courts, amenities } = req.body;
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        const facilitiesJson = JSON.stringify(facilities || ['Turf', 'AC Lounge', 'Floodlights']);
+        const hasAc = amenities?.has_ac || (facilities || []).includes('AC Lounge');
+        const hasParking = amenities?.has_parking || (facilities || []).includes('Parking');
+        const hasCameras = amenities?.has_cameras || (facilities || []).includes('Live Stream Camera');
+        const hasChangingRoom = amenities?.has_changing_room || (facilities || []).includes('Changing Rooms');
+        const hasCanteen = amenities?.has_canteen || (facilities || []).includes('Refreshments Canteen');
+
         const arenaRes = await client.query(
-          `INSERT INTO indoor_arenas (name, address) VALUES ($1, $2) RETURNING *;`,
-          [name, address]
+          `INSERT INTO indoor_arenas (
+             name, address, city, hourly_rate, facilities, owner_id,
+             has_ac, has_parking, has_cameras, has_changing_room, has_canteen
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *;`,
+          [
+            name,
+            address,
+            city || 'Lahore',
+            hourly_rate || 2500.0,
+            facilitiesJson,
+            owner_id || null,
+            hasAc,
+            hasParking,
+            hasCameras,
+            hasChangingRoom,
+            hasCanteen
+          ]
         );
         const newArena = arenaRes.rows[0];
 
@@ -62,7 +113,7 @@ function createBookingRouter(pool) {
             const courtRes = await client.query(
               `INSERT INTO arena_courts (arena_id, court_name, sport_type, hourly_rate)
                VALUES ($1, $2, $3, $4) RETURNING *;`,
-              [newArena.id, c.court_name, c.sport_type || 'FUTSAL', c.hourly_rate || 40.0]
+              [newArena.id, c.court_name, c.sport_type || 'CRICKET', c.hourly_rate || hourly_rate || 2500.0]
             );
             createdCourts.push(courtRes.rows[0]);
           }

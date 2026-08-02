@@ -33,8 +33,17 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // View Mode: 'BOOKING' or 'EXPLORE_ALL'
+  // View Mode: 'BOOKING', 'EXPLORE_ALL', or 'OWNER_DASHBOARD'
   const [viewMode, setViewMode] = useState('BOOKING');
+  const [roleMode, setRoleMode] = useState('PLAYER'); // 'PLAYER' or 'OWNER'
+
+  // Owner Arena & Multi-Store Forms State
+  const [newArenaName, setNewArenaName] = useState('');
+  const [newArenaAddress, setNewArenaAddress] = useState('');
+  const [newArenaRate, setNewArenaRate] = useState('2500');
+  const [newStoreName, setNewStoreName] = useState('');
+  const [newStoreAddress, setNewStoreAddress] = useState('');
+  const [newStorePhone, setNewStorePhone] = useState('');
 
   // Location & Search State
   const [selectedCity, setSelectedCity] = useState(PAKISTAN_CITIES[0]);
@@ -100,6 +109,64 @@ export default function BookingsScreen() {
       const res = await fetch(`${API_BASE}/bookings/slots?court_id=${selectedCourt.id}`);
       const data = await res.json();
       if (data.success) setSlots(data.slots);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRegisterArena = async () => {
+    if (!newArenaName || !newArenaAddress) {
+      Alert.alert('Validation Error', 'Arena Name and Address are required');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/bookings/arenas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
+        body: JSON.stringify({
+          name: newArenaName,
+          address: newArenaAddress,
+          city: selectedCity.name.split(' ')[0],
+          hourly_rate: parseFloat(newArenaRate) || 2500,
+          facilities: ['Artificial Turf', 'AC Lounge', 'Night Floodlights', 'Changing Rooms']
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Alert.alert('Success 🚀', 'Indoor Arena & Facilities registered!');
+        setNewArenaName('');
+        setNewArenaAddress('');
+        fetchArenas();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCreateStore = async () => {
+    if (!newStoreName || !newStoreAddress) {
+      Alert.alert('Validation Error', 'Store Name and Location Address are required');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/finance/stores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
+        body: JSON.stringify({
+          owner_id: 'owner-uuid-101',
+          store_name: newStoreName,
+          store_address: newStoreAddress,
+          contact_phone: newStorePhone,
+          store_type: 'EQUIPMENT_PRO_SHOP'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Alert.alert('Success 🏪', 'Equipment Pro-Shop registered under profile!');
+        setNewStoreName('');
+        setNewStoreAddress('');
+        setNewStorePhone('');
+      }
     } catch (e) {
       console.error(e);
     }
@@ -188,7 +255,16 @@ export default function BookingsScreen() {
           onPress={() => setViewMode('BOOKING')}
         >
           <Text style={[styles.modeTabText, { color: theme.subText }, viewMode === 'BOOKING' && { color: '#000', fontWeight: '800' }]}>
-            📅 Instant Booking Courts
+            📅 Book Courts
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.modeTab, viewMode === 'OWNER_DASHBOARD' && { backgroundColor: theme.accent }]}
+          onPress={() => setViewMode('OWNER_DASHBOARD')}
+        >
+          <Text style={[styles.modeTabText, { color: theme.subText }, viewMode === 'OWNER_DASHBOARD' && { color: '#000', fontWeight: '800' }]}>
+            🏢 Indoor Owner
           </Text>
         </TouchableOpacity>
 
@@ -197,10 +273,77 @@ export default function BookingsScreen() {
           onPress={() => setViewMode('EXPLORE_ALL')}
         >
           <Text style={[styles.modeTabText, { color: theme.subText }, viewMode === 'EXPLORE_ALL' && { color: '#000', fontWeight: '800' }]}>
-            MAP Grounds & Directions
+            🗺️ MAP Grounds
           </Text>
         </TouchableOpacity>
       </View>
+
+      {viewMode === 'OWNER_DASHBOARD' && (
+        <View style={{ marginBottom: 20 }}>
+          {/* Indoor Venue & Facilities Form */}
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border, padding: 16, marginBottom: 16 }]}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text, marginBottom: 8 }}>
+              🏟️ Register Indoor Arena & Facilities
+            </Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
+              placeholder="Arena Name (e.g. Velocity Sports Complex)"
+              placeholderTextColor={theme.subText}
+              value={newArenaName}
+              onChangeText={setNewArenaName}
+            />
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
+              placeholder="Location Address"
+              placeholderTextColor={theme.subText}
+              value={newArenaAddress}
+              onChangeText={setNewArenaAddress}
+            />
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 12 }]}
+              placeholder="Hourly Rate PKR (e.g. 2500)"
+              placeholderTextColor={theme.subText}
+              keyboardType="numeric"
+              value={newArenaRate}
+              onChangeText={setNewArenaRate}
+            />
+            <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: theme.accent }]} onPress={handleRegisterArena}>
+              <Text style={{ color: '#000', fontWeight: '800', textAlign: 'center' }}>🚀 Register Arena & Facilities</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Multi-Store Ownership Form */}
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border, padding: 16 }]}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text, marginBottom: 8 }}>
+              🏪 Multi-Store Ownership (Pro-Shop Branch)
+            </Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
+              placeholder="Store Name (e.g. SportsAdda DHA Pro Shop)"
+              placeholderTextColor={theme.subText}
+              value={newStoreName}
+              onChangeText={setNewStoreName}
+            />
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
+              placeholder="Store Branch Location"
+              placeholderTextColor={theme.subText}
+              value={newStoreAddress}
+              onChangeText={setNewStoreAddress}
+            />
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 12 }]}
+              placeholder="Contact Phone Number"
+              placeholderTextColor={theme.subText}
+              value={newStorePhone}
+              onChangeText={setNewStorePhone}
+            />
+            <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#8b5cf6' }]} onPress={handleCreateStore}>
+              <Text style={{ color: '#fff', fontWeight: '800', textAlign: 'center' }}>➕ Register Store Branch</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* City Selector */}
       <Text style={[styles.sectionHeader, { color: theme.text }]}>Select Region in Pakistan:</Text>

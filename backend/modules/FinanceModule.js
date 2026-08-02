@@ -334,6 +334,106 @@ function createFinanceRouter(pool) {
     }
   });
 
+  // --- MULTI-STORE OWNERSHIP & INVENTORY MANAGEMENT ROUTES ---
+
+  // 1. Register a new Equipment / Pro-Shop Store under Owner Profile (Multi-Store Support)
+  router.post('/stores', async (req, res) => {
+    try {
+      const { owner_id, arena_id, store_name, store_address, contact_phone, store_type } = req.body;
+      if (!owner_id || !store_name || !store_address) {
+        return res.status(400).json({ success: false, error: 'owner_id, store_name, and store_address are required' });
+      }
+
+      const { rows } = await pool.query(
+        `INSERT INTO owner_stores (
+           owner_id, arena_id, store_name, store_address, contact_phone, store_type
+         ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`,
+        [owner_id, arena_id || null, store_name, store_address, contact_phone || null, store_type || 'EQUIPMENT_PRO_SHOP']
+      );
+
+      res.json({ success: true, store: rows[0] });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 2. Fetch all stores owned by specific Indoor Owner Profile
+  router.get('/stores/owner', async (req, res) => {
+    try {
+      const ownerId = req.query.owner_id || req.headers['x-user-id'];
+      if (!ownerId) {
+        return res.status(400).json({ success: false, error: 'owner_id is required' });
+      }
+
+      const { rows } = await pool.query(
+        `SELECT s.*, a.name AS arena_name
+         FROM owner_stores s
+         LEFT JOIN indoor_arenas a ON s.arena_id = a.id
+         WHERE s.owner_id = $1
+         ORDER BY s.created_at DESC;`,
+        [ownerId]
+      );
+
+      res.json({ success: true, stores: rows });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 3. Public endpoint to list all active stores for Players
+  router.get('/stores', async (req, res) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT s.*, p.display_name AS owner_name, a.name AS arena_name
+         FROM owner_stores s
+         LEFT JOIN player_profiles p ON s.owner_id = p.user_id
+         LEFT JOIN indoor_arenas a ON s.arena_id = a.id
+         WHERE s.is_active = TRUE
+         ORDER BY s.created_at DESC;`
+      );
+      res.json({ success: true, stores: rows });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 4. Add Inventory Item to Store
+  router.post('/stores/:store_id/inventory', async (req, res) => {
+    try {
+      const { store_id } = req.params;
+      const { item_name, category, price, stock_quantity } = req.body;
+
+      if (!item_name || !price) {
+        return res.status(400).json({ success: false, error: 'item_name and price are required' });
+      }
+
+      const { rows } = await pool.query(
+        `INSERT INTO store_inventory (
+           store_id, item_name, category, price, stock_quantity
+         ) VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
+        [store_id, item_name, category || 'CRICKET_GEAR', parseFloat(price), parseInt(stock_quantity) || 0]
+      );
+
+      res.json({ success: true, item: rows[0] });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 5. Get Inventory Items for Store
+  router.get('/stores/:store_id/inventory', async (req, res) => {
+    try {
+      const { store_id } = req.params;
+      const { rows } = await pool.query(
+        `SELECT * FROM store_inventory WHERE store_id = $1 ORDER BY created_at DESC;`,
+        [store_id]
+      );
+      res.json({ success: true, inventory: rows });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   return router;
 }
 
