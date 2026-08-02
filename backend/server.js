@@ -29,14 +29,32 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-// Real-Time HTTP API Terminal Request Logger
+// Real-Time HTTP API Terminal Request & Developer Error Logger
 app.use((req, res, next) => {
   const start = Date.now();
+  
+  // Intercept res.json to capture response payload for developer error printing
+  const originalJson = res.json;
+  let responseBody = null;
+  res.json = function (body) {
+    responseBody = body;
+    return originalJson.call(this, body);
+  };
+
   res.on('finish', () => {
     const duration = Date.now() - start;
     const status = res.statusCode;
-    const statusEmoji = status >= 500 ? '💥' : status >= 400 ? '❌' : status >= 300 ? '➡️' : '✅';
-    console.log(`${statusEmoji} [${new Date().toISOString().split('T')[1].slice(0, 8)}] ${req.method} ${req.originalUrl} - Status: ${status} (${duration}ms)`);
+    const timeStr = new Date().toISOString().split('T')[1].slice(0, 8);
+    
+    if (status >= 400) {
+      const errorMsg = responseBody?.error || responseBody?.message || (responseBody?.details ? JSON.stringify(responseBody.details) : 'Request Failed');
+      console.error(`[ERROR] [${timeStr}] ${req.method} ${req.originalUrl} - Status: ${status} (${duration}ms) | Message: ${errorMsg}`);
+      if (req.body && Object.keys(req.body).length > 0) {
+        console.error(`        Payload:`, JSON.stringify(req.body));
+      }
+    } else {
+      console.log(`[INFO] [${timeStr}] ${req.method} ${req.originalUrl} - Status: ${status} (${duration}ms)`);
+    }
   });
   next();
 });

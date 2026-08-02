@@ -190,8 +190,10 @@ function createAuthRouter(pool) {
       });
     } catch (err) {
       if (err instanceof z.ZodError) {
+        console.error('[DEV AUTH ERROR] Validation Error Details:', JSON.stringify(err.errors));
         return res.status(400).json({ success: false, error: 'Validation Error', details: err.errors });
       }
+      console.error('[DEV AUTH ERROR] Exception:', err.message);
       res.status(500).json({ success: false, error: err.message });
     }
   });
