@@ -361,3 +361,31 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(0);
 }
 
+/* Mobile Screen Responsive Rules (< 768px) */
+@media (max-width: 768px) {
+  .app-sidebar {
+    width: 260px;
+    transform: translateX(-100%);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+  }
+  
+  .app-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .app-main-wrapper,
+  .app-main-wrapper.sidebar-collapsed {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .app-top-header {
+    padding: 0 16px;
+  }
+
+  /* Safe Area Inset for Mobile Device Navigation Bars */
+  footer {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+  }
+}
+
