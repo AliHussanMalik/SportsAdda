@@ -29,6 +29,18 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Real-Time HTTP API Terminal Request Logger
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const status = res.statusCode;
+    const statusEmoji = status >= 500 ? '💥' : status >= 400 ? '❌' : status >= 300 ? '➡️' : '✅';
+    console.log(`${statusEmoji} [${new Date().toISOString().split('T')[1].slice(0, 8)}] ${req.method} ${req.originalUrl} - Status: ${status} (${duration}ms)`);
+  });
+  next();
+});
+
 // PostgreSQL pool connection
 const pool = new Pool({
   host: process.env.PGHOST || '127.0.0.1',
@@ -89,5 +101,5 @@ app.get('/api/health', async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🏆 SportsAdda Production API Server & Engine running on port ${PORT}`);
+  console.log(`SportsAdda Production API Server & Engine running on port ${PORT}`);
 });
