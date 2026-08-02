@@ -134,10 +134,13 @@ CREATE TABLE IF NOT EXISTS match_fixtures (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Update Matches to Allow Open Pitch Matches
+-- Update Matches to Allow Open Pitch Matches & Cricket Setup Settings
 ALTER TABLE match_fixtures 
 ADD COLUMN IF NOT EXISTS is_custom_ground BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS custom_ground_id UUID REFERENCES custom_grounds(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS custom_ground_id UUID REFERENCES custom_grounds(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS total_overs INT DEFAULT 10,
+ADD COLUMN IF NOT EXISTS playing_squad_count INT DEFAULT 11,
+ADD COLUMN IF NOT EXISTS max_wickets INT DEFAULT 10;
 
 ALTER TABLE match_fixtures ALTER COLUMN court_booking_id DROP NOT NULL;
 
@@ -148,6 +151,51 @@ CREATE TABLE IF NOT EXISTS match_events (
     player_id UUID REFERENCES player_profiles(user_id),
     event_time_seconds INT,
     details JSONB
+);
+
+-- Cricket Batting Order & Extra Players Queue
+CREATE TABLE IF NOT EXISTS cricket_batting_order (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    match_id UUID REFERENCES match_fixtures(id) ON DELETE CASCADE,
+    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+    player_id UUID REFERENCES player_profiles(user_id) ON DELETE CASCADE,
+    batting_position INT NOT NULL,
+    is_extra_player BOOLEAN DEFAULT FALSE,
+    is_reserve BOOLEAN DEFAULT FALSE,
+    status VARCHAR(20) DEFAULT 'QUEUED', -- 'QUEUED', 'STRIKER', 'NON_STRIKER', 'OUT', 'NOT_OUT'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(match_id, team_id, player_id)
+);
+ALTER TABLE cricket_batting_order ADD COLUMN IF NOT EXISTS is_reserve BOOLEAN DEFAULT FALSE;
+
+-- Player & Bowler Career Statistics Aggregation
+CREATE TABLE IF NOT EXISTS cricket_player_stats (
+    user_id UUID PRIMARY KEY REFERENCES player_profiles(user_id) ON DELETE CASCADE,
+    total_runs INT DEFAULT 0,
+    balls_faced INT DEFAULT 0,
+    fours INT DEFAULT 0,
+    sixes INT DEFAULT 0,
+    dismissals INT DEFAULT 0,
+    high_score INT DEFAULT 0,
+    overs_bowled DECIMAL(5,1) DEFAULT 0.0,
+    balls_bowled INT DEFAULT 0,
+    runs_conceded INT DEFAULT 0,
+    wickets_taken INT DEFAULT 0,
+    economy_rate DECIMAL(5,2) DEFAULT 0.00,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Dual Captain Verification & Confirmation Intervals
+CREATE TABLE IF NOT EXISTS match_captain_verifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    match_id UUID REFERENCES match_fixtures(id) ON DELETE CASCADE,
+    interval_type VARCHAR(30) DEFAULT 'EACH_OVER', -- 'EACH_BALL', 'EACH_OVER', 'EVERY_2_OVERS'
+    interval_value INT DEFAULT 1,
+    last_verified_ball_count INT DEFAULT 0,
+    captain_a_confirmed BOOLEAN DEFAULT FALSE,
+    captain_b_confirmed BOOLEAN DEFAULT FALSE,
+    status VARCHAR(30) DEFAULT 'CONFIRMED', -- 'PENDING_CONFIRMATION', 'CONFIRMED'
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 7. Automated Post-Match Awards
