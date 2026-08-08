@@ -1,0 +1,98 @@
+{
+  "title": "MCC Laws of Cricket & ICC Standard Playing Conditions Reference Library",
+  "audit_date": "2026-08-01",
+  "governing_bodies": [
+    "Marylebone Cricket Club (MCC)",
+    "International Cricket Council (ICC)"
+  ],
+  "laws_and_papers": [
+    {
+      "law_id": "MCC Law 18.11",
+      "topic": "Batters Crossing / Out Caught Strike Rotation (2022 Code)",
+      "official_law": "Law 18.11 - Batter Out Caught",
+      "summary": "When a batter is out Caught, the new batter must always take strike at the end where the dismissed striker was positioned, regardless of whether batters crossed prior to the catch.",
+      "url": "https://www.lords.org/mcc/the-laws-of-cricket/law-18-scoring-runs"
+    },
+    {
+      "law_id": "MCC Law 17.2",
+      "topic": "Consecutive Overs Restriction for Bowlers",
+      "official_law": "Law 17.2 - Consecutive Overs",
+      "summary": "A bowler shall not bowl two overs consecutively in the same innings.",
+      "url": "https://www.lords.org/mcc/the-laws-of-cricket/the-over"
+    },
+    {
+      "law_id": "MCC Law 21",
+      "topic": "No Ball Penalty, Extra Runs & Re-bowled Delivery",
+      "official_law": "Law 21 - No Ball",
+      "summary": "Awards 1 penalty run, does not count towards the 6-ball over limit, requires re-bowling delivery, and restricts dismissals to Run Out / Obstructing.",
+      "url": "https://www.lords.org/mcc/the-laws-of-cricket/no-ball"
+    },
+    {
+      "law_id": "MCC Law 22",
+      "topic": "Wide Ball Penalty & Re-bowled Delivery",
+      "official_law": "Law 22 - Wide Ball",
+      "summary": "Awards 1 penalty run, does not count as a legal delivery in the over, and must be re-bowled.",
+      "url": "https://www.lords.org/mcc/the-laws-of-cricket/wide-ball"
+    },
+    {
+      "law_id": "MCC Law 24",
+      "topic": "Substitutes & Fielder Restrictions",
+      "official_law": "Law 24 - Fielders Absence & Substitutes",
+      "summary": "Substitute fielders are allowed for injured/ill players, but substitutes cannot bat, bowl, or act as captain.",
+      "url": "https://www.lords.org/mcc/the-laws-of-cricket/fielders-absence-substitutes"
+    },
+    {
+      "law_id": "MCC Law 38",
+      "topic": "Run Out Dismissals",
+      "official_law": "Law 38 - Run Out",
+      "summary": "Either the striker or non-striker can be run out while out of their ground. If non-striker is run out, striker remains on strike.",
+      "url": "https://www.lords.org/mcc/the-laws-of-cricket/run-out"
+    },
+    {
+      "law_id": "MCC Law 33",
+      "topic": "Caught Dismissals",
+      "official_law": "Law 33 - Caught",
+      "summary": "Fair catch by fielder or keeper before ball touches ground.",
+      "url": "https://www.lords.org/mcc/the-laws-of-cricket/caught"
+    },
+    {
+      "law_id": "MCC Law 36",
+      "topic": "Leg Before Wicket (LBW)",
+      "official_law": "Law 36 - Leg Before Wicket",
+      "summary": "Ball pitches in line or off side, impacts inline, and would hit wickets.",
+      "url": "https://www.lords.org/mcc/the-laws-of-cricket/lbw"
+    }
+  ],
+  "articles_and_analysis_papers": [
+    {
+      "title": "MCC Announces Changes to Laws of Cricket (2022 Code Update)",
+      "publisher": "Marylebone Cricket Club (Lord's Official)",
+      "url": "https://www.lords.org/mcc/the-laws-of-cricket"
+    },
+    {
+      "title": "ICC Playing Conditions & Revised Playing Rules 2022",
+      "publisher": "International Cricket Council (ICC)",
+      "url": "https://www.icc-cricket.com/news/2798606"
+    },
+    {
+      "title": "New Batter to Take Strike on Caught Dismissal Breakdown",
+      "publisher": "ESPNcricinfo",
+      "url": "https://www.espncricinfo.com/story/mcc-changes-laws-of-cricket-new-batter-to-take-strike-after-caught-dismissal-1304381"
+    },
+    {
+      "title": "Dawn News Analysis on MCC 2022 Law Amendments",
+      "publisher": "Dawn News",
+      "url": "https://www.dawn.com/news/1678864"
+    },
+    {
+      "title": "Kent County Cricket Club Rule Breakdown on Law 18.11",
+      "publisher": "Kent Cricket",
+      "url": "https://www.kentcricket.co.uk/news/mcc-announces-changes-to-laws-of-cricket/"
+    },
+    {
+      "title": "Wikipedia Laws of Cricket (2022 Code Overview)",
+      "publisher": "Wikipedia Foundation",
+      "url": "https://en.wikipedia.org/wiki/Laws_of_Cricket"
+    }
+  ]
+}

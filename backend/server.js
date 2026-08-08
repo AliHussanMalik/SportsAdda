@@ -14,6 +14,7 @@ const createAnalyticsRouter = require('./modules/AnalyticsModule');
 const createFinanceRouter = require('./modules/FinanceModule');
 const createRatingRouter = require('./modules/RatingModule');
 const createSearchRouter = require('./modules/SearchModule');
+const { createNotificationRouter } = require('./modules/NotificationModule');
 
 const app = express();
 const server = http.createServer(app);
@@ -32,7 +33,7 @@ app.use(express.json());
 // Real-Time HTTP API Terminal Request & Developer Error Logger
 app.use((req, res, next) => {
   const start = Date.now();
-  
+
   // Intercept res.json to capture response payload for developer error printing
   const originalJson = res.json;
   let responseBody = null;
@@ -45,7 +46,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     const status = res.statusCode;
     const timeStr = new Date().toISOString().split('T')[1].slice(0, 8);
-    
+
     if (status >= 400) {
       const errorMsg = responseBody?.error || responseBody?.message || (responseBody?.details ? JSON.stringify(responseBody.details) : 'Request Failed');
       console.error(`[ERROR] [${timeStr}] ${req.method} ${req.originalUrl} - Status: ${status} (${duration}ms) | Message: ${errorMsg}`);
@@ -74,7 +75,7 @@ pool.on('error', (err) => {
 
 // Socket.io event listeners
 io.on('connection', (socket) => {
-  console.log('⚡ Client connected to SportsAdda Live WebSocket:', socket.id);
+  console.log('Client connected to SportsAdda Live WebSocket:', socket.id);
 
   socket.on('join_match', (matchId) => {
     socket.join(`match_${matchId}`);
@@ -86,6 +87,11 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} left room match_${matchId}`);
   });
 
+  socket.on('join_user_room', (userId) => {
+    socket.join(`user_${userId}`);
+    console.log(`Socket ${socket.id} joined user notification room user_${userId}`);
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected from SportsAdda Live WebSocket:', socket.id);
   });
@@ -94,7 +100,8 @@ io.on('connection', (socket) => {
 // Mount Modular Routers
 app.use('/api/auth', createAuthRouter(pool));
 app.use('/api/teams', createTeamRouter(pool));
-app.use('/api/bookings', createBookingRouter(pool));
+app.use('/api/bookings', createBookingRouter(pool, io));
+app.use('/api/notifications', createNotificationRouter(pool));
 app.use('/api/matches', createMatchRouter(pool));
 app.use('/api/scoring', createScoringRouter(pool, io));
 app.use('/api/analytics', createAnalyticsRouter(pool));

@@ -122,19 +122,72 @@ CREATE INDEX IF NOT EXISTS idx_owner_stores ON owner_stores (owner_id);
 
 CREATE TABLE IF NOT EXISTS arena_courts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    arena_id UUID REFERENCES indoor_arenas(id),
+    arena_id UUID REFERENCES indoor_arenas(id) ON DELETE CASCADE,
     court_name VARCHAR(100),
-    sport_type VARCHAR(50),
+    sport_type VARCHAR(50) DEFAULT 'CRICKET',
     hourly_rate DECIMAL(10,2) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS court_bookings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    court_id UUID REFERENCES arena_courts(id),
+    court_id UUID REFERENCES arena_courts(id) ON DELETE CASCADE,
     booked_by_user_id UUID NOT NULL,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     payment_status VARCHAR(20) DEFAULT 'PENDING'
+);
+
+-- Indoor Cricket Dedicated Pitch Management
+CREATE TABLE IF NOT EXISTS indoor_cricket_pitches (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    arena_id UUID REFERENCES indoor_arenas(id) ON DELETE CASCADE NOT NULL,
+    pitch_name VARCHAR(150) NOT NULL,
+    pitch_type VARCHAR(50) DEFAULT 'TAPE_BALL', -- TAPE_BALL, LEATHER_BALL, BOX_CRICKET, BOWLING_MACHINE_NET
+    length_yards INT DEFAULT 22,
+    has_bowling_machine BOOLEAN DEFAULT FALSE,
+    hourly_rate DECIMAL(10,2) DEFAULT 2500.00,
+    peak_hourly_rate DECIMAL(10,2) DEFAULT 3500.00,
+    bowling_machine_fee DECIMAL(10,2) DEFAULT 500.00,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS indoor_pitch_slots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pitch_id UUID REFERENCES indoor_cricket_pitches(id) ON DELETE CASCADE NOT NULL,
+    slot_date DATE NOT NULL,
+    start_time VARCHAR(10) NOT NULL, -- e.g. '18:00'
+    end_time VARCHAR(10) NOT NULL,   -- e.g. '19:00'
+    is_peak_hour BOOLEAN DEFAULT FALSE,
+    status VARCHAR(30) DEFAULT 'OPEN', -- OPEN, BOOKED, MAINTENANCE
+    price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS indoor_cricket_bookings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    slot_id UUID REFERENCES indoor_pitch_slots(id) ON DELETE CASCADE NOT NULL,
+    pitch_id UUID REFERENCES indoor_cricket_pitches(id) ON DELETE CASCADE NOT NULL,
+    booked_by_user_id UUID REFERENCES player_profiles(user_id) ON DELETE CASCADE NOT NULL,
+    team_name VARCHAR(150) NOT NULL,
+    include_bowling_machine BOOLEAN DEFAULT FALSE,
+    include_equipment_kit BOOLEAN DEFAULT FALSE,
+    total_price DECIMAL(10,2) NOT NULL,
+    booking_status VARCHAR(30) DEFAULT 'APPROVED', -- PENDING, APPROVED, CHECKED_IN, CANCELLED
+    qr_checkin_code VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Universal Real-Time Notifications Engine Table
+CREATE TABLE IF NOT EXISTS user_notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES player_profiles(user_id) ON DELETE CASCADE NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    payload JSONB DEFAULT '{}'::jsonb,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 5. Custom / Open Pitch Grounds

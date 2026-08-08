@@ -49,23 +49,56 @@ export default function AwardsAnalyticsView({ activeMatchId }) {
   };
 
   if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Calculating automated post-match awards...</div>;
+    return (
+      <div className="glass-panel" style={{ padding: '60px 32px', textAlign: 'center', margin: '40px auto', maxWidth: '640px', borderRadius: '24px' }}>
+        <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#10b981', marginBottom: '8px' }}>
+          ✨ Calculating automated post-match awards...
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Evaluating player MVP points, boundaries, wickets, and defensive metrics.</p>
+      </div>
+    );
   }
 
   if (!awardsData || !awardsData.awards) {
-    return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Select a match to compute awards.</div>;
+    return (
+      <div className="glass-panel glow-box" style={{ padding: '64px 36px', textAlign: 'center', margin: '40px auto', maxWidth: '640px', borderRadius: '24px' }}>
+        <div style={{
+          width: '72px',
+          height: '72px',
+          borderRadius: '24px',
+          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.25))',
+          border: '1px solid rgba(245, 158, 11, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 24px auto',
+          boxShadow: '0 0 24px rgba(245, 158, 11, 0.3)'
+        }}>
+          <Trophy size={36} style={{ color: '#f59e0b' }} />
+        </div>
+        <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fff', marginBottom: '10px', letterSpacing: '-0.02em' }}>
+          Automated Match Awards Engine
+        </h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', maxWidth: '440px', margin: '0 auto 24px auto', lineHeight: 1.5 }}>
+          Select or complete a match in the Scorer Console to view computed Player of the Match, Top Scorer, and Best Keeper analytics.
+        </p>
+      </div>
+    );
   }
 
   const { mvp, top_scorer, best_bowler, best_keeper } = awardsData.awards;
 
   return (
-    <div style={{ padding: '24px 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+    <div style={{ padding: '16px 0 32px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Trophy style={{ color: '#f59e0b' }} /> Automated Post-Match Awards Engine
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '-0.02em' }}>
+            <div style={{ padding: '8px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+              <Trophy style={{ color: '#f59e0b' }} size={24} />
+            </div>
+            Automated Post-Match Awards Engine
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
             Algorithmic post-match award calculation evaluating overall match performance, goals/runs, wickets, and keeper metrics.
           </p>
         </div>

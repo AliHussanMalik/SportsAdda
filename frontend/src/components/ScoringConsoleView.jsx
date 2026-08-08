@@ -1100,8 +1100,6 @@ export default function ScoringConsoleView({ activeMatchId, setActiveMatchId }) 
           </div>
         </div>
       )}
-        </div>
-      )}
 
       {/* Pre-Match Toss Modal */}
       {showTossModal && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Shield, Crown, Award, LogIn, LogOut, KeyRound, Sparkles, Activity, Lock, User } from 'lucide-react';
+import { UserCheck, Shield, Crown, Award, LogIn, LogOut, KeyRound, Sparkles, Activity, Lock, User, UserPlus, Eye, EyeOff } from 'lucide-react';
 
 export default function AuthModuleView() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -11,10 +11,12 @@ export default function AuthModuleView() {
   const [mode, setMode] = useState('login');
   const [errorMessage, setErrorMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Credentials
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
+  const [accountRole, setAccountRole] = useState('PLAYER'); // 'PLAYER' or 'INDOOR_OWNER'
   const [primarySport, setPrimarySport] = useState('FUTSAL');
   const [jerseyNumber, setJerseyNumber] = useState(10);
 
@@ -113,6 +115,7 @@ export default function AuthModuleView() {
         body: JSON.stringify({
           display_name: displayName,
           password: password,
+          role: accountRole,
           primary_sport: primarySport,
           jersey_number: parseInt(jerseyNumber) || 10
         })
@@ -191,7 +194,7 @@ export default function AuthModuleView() {
       {/* If NOT logged in: Show Log In / Sign Up Card Form              */}
       {/* ------------------------------------------------------------- */}
       {!currentUser ? (
-        <div style={{ maxWidth: '460px', margin: '0 auto 36px auto' }} className="glass-panel" style={{ padding: '28px', borderRadius: '20px', maxWidth: '480px', margin: '0 auto 36px auto' }}>
+        <div className="glass-panel" style={{ padding: '28px', borderRadius: '20px', maxWidth: '480px', margin: '0 auto 36px auto' }}>
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: 'rgba(0,0,0,0.3)', padding: '4px', borderRadius: '12px' }}>
             <button
               onClick={() => { setMode('login'); setErrorMessage(''); }}
@@ -241,10 +244,11 @@ export default function AuthModuleView() {
 
           <form onSubmit={mode === 'login' ? handleLogin : handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label htmlFor="auth-username-input" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <User size={14} /> Display Name / User Name
               </label>
               <input
+                id="auth-username-input"
                 type="text"
                 required
                 autoComplete="username"
@@ -256,42 +260,67 @@ export default function AuthModuleView() {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label htmlFor="auth-password-input" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Lock size={14} /> Password
               </label>
-              <input
-                type="password"
-                required
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginTop: '4px' }}>
+                <input
+                  id="auth-password-input"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '12px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             {mode === 'register' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Primary Sport</label>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Account Role & Capabilities</label>
                   <select
-                    value={primarySport}
-                    onChange={(e) => setPrimarySport(e.target.value)}
+                    value={accountRole}
+                    onChange={(e) => setAccountRole(e.target.value)}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
                   >
-                    <option value="FUTSAL">Futsal ⚽</option>
-                    <option value="CRICKET">Indoor Cricket 🏏</option>
-                    <option value="PADEL">Padel 🎾</option>
+                    <option value="PLAYER">🏃 Player (Book Pitch Slots & View Stats)</option>
+                    <option value="INDOOR_OWNER">🏢 Indoor Owner (Manage Arena, Pitches & Kiosk Audit)</option>
                   </select>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Jersey Number</label>
-                  <input
-                    type="number"
-                    value={jerseyNumber}
-                    onChange={(e) => setJerseyNumber(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
-                  />
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Primary Sport</label>
+                    <select
+                      value={primarySport}
+                      onChange={(e) => setPrimarySport(e.target.value)}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
+                    >
+                      <option value="CRICKET">Indoor Cricket 🏏</option>
+                      <option value="FUTSAL">Futsal ⚽</option>
+                      <option value="PADEL">Padel 🎾</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Jersey Number</label>
+                    <input
+                      type="number"
+                      value={jerseyNumber}
+                      onChange={(e) => setJerseyNumber(e.target.value)}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -336,9 +365,20 @@ export default function AuthModuleView() {
               </div>
             </div>
 
-            <span className={`badge ${currentUser.subscription_tier === 'PRO' ? 'badge-pro' : 'badge-free'}`}>
-              <Sparkles size={12} /> {currentUser.subscription_tier}
-            </span>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span className="badge" style={{
+                background: currentUser.role === 'INDOOR_OWNER' ? 'rgba(245,158,11,0.2)' : currentUser.role === 'ADMIN' ? 'rgba(168,85,247,0.2)' : 'rgba(16,185,129,0.2)',
+                color: currentUser.role === 'INDOOR_OWNER' ? '#f59e0b' : currentUser.role === 'ADMIN' ? '#a855f7' : '#10b981',
+                fontWeight: 800,
+                fontSize: '0.8rem'
+              }}>
+                {currentUser.role === 'INDOOR_OWNER' ? '🏢 INDOOR OWNER' : currentUser.role === 'ADMIN' ? '🛡️ ADMIN' : '🏃 PLAYER'}
+              </span>
+
+              <span className={`badge ${currentUser.subscription_tier === 'PRO' ? 'badge-pro' : 'badge-free'}`}>
+                <Sparkles size={12} /> {currentUser.subscription_tier}
+              </span>
+            </div>
           </div>
 
           {editMode ? (
@@ -371,63 +411,81 @@ export default function AuthModuleView() {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* Public Players Directory (Read-Only View for Other Players)    */}
+      {/* Registered Players Directory Privacy Logic                     */}
       {/* ------------------------------------------------------------- */}
-      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>
-        👥 Registered Players Directory ({profiles.length})
-      </h3>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '20px' }}>
-        (You can view all registered players below. Profile modifications are only allowed for your own account.)
-      </p>
-
-      {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading profiles...</div>
+      {currentUser && (currentUser.role === 'PLAYER' || !currentUser.role) ? (
+        /* PRIVACY BANNER FOR REGULAR PLAYERS (Hide global directory) */
+        <div className="glass-panel" style={{ padding: '28px', textAlign: 'center', borderRadius: '16px', border: '1px dashed rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.05)' }}>
+          {/* <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            🔒 Player Account Privacy Protected
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '520px', margin: '0 auto 14px auto', lineHeight: '1.5' }}>
+            Your account credentials, pitch bookings, and profile statistics are private to your logged-in account. The global player directory is restricted from regular player views.
+          </p> */}
+          <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 700 }}>
+            🏃 Active Role: Player Account
+          </span>
+        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-          {profiles.map((p) => {
-            const isSelf = currentUser && currentUser.user_id === p.user_id;
-            return (
-              <div key={p.user_id} className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: isSelf ? '2px solid #10b981' : '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <div style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '50%',
-                      background: isSelf ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'rgba(255,255,255,0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.1rem',
-                      fontWeight: 800,
-                      color: '#fff'
-                    }}>
-                      #{p.jersey_number || '0'}
-                    </div>
-                    <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
-                        {p.display_name} {isSelf && <span style={{ fontSize: '0.75rem', color: '#10b981' }}>(You)</span>}
-                      </h4>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {p.primary_sport} • {p.preferred_role || 'Player'}
+        /* ADMINISTRATIVE DIRECTORY VIEW FOR INDOOR OWNER & ADMIN */
+        <>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>
+            👥 Registered Players Directory ({profiles.length})
+          </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '20px' }}>
+            (Management Directory View for Arena Roster & Indoor Owner Privileges.)
+          </p>
+
+          {loading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading profiles...</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+              {profiles.map((p) => {
+                const isSelf = currentUser && currentUser.user_id === p.user_id;
+                return (
+                  <div key={p.user_id} className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: isSelf ? '2px solid #10b981' : '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '50%',
+                          background: isSelf ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'rgba(255,255,255,0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.1rem',
+                          fontWeight: 800,
+                          color: '#fff'
+                        }}>
+                          #{p.jersey_number || '0'}
+                        </div>
+                        <div>
+                          <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
+                            {p.display_name} {isSelf && <span style={{ fontSize: '0.75rem', color: '#10b981' }}>(You)</span>}
+                          </h4>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            {p.primary_sport} • {p.role || 'PLAYER'}
+                          </div>
+                        </div>
                       </div>
+
+                      <span className={`badge ${p.subscription_tier === 'PRO' ? 'badge-pro' : 'badge-free'}`}>
+                        {p.subscription_tier}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {p.role === 'INDOOR_OWNER' && <span className="badge" style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontSize: '0.65rem' }}>🏢 Indoor Owner</span>}
+                      {p.is_captain && <span className="badge badge-captain"><Crown size={12} /> Captain</span>}
+                      {p.is_coach && <span className="badge badge-coach"><Shield size={12} /> Coach</span>}
                     </div>
                   </div>
-
-                  <span className={`badge ${p.subscription_tier === 'PRO' ? 'badge-pro' : 'badge-free'}`}>
-                    {p.subscription_tier}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {p.is_captain && <span className="badge badge-captain"><Crown size={12} /> Captain</span>}
-                  {p.is_coach && <span className="badge badge-coach"><Shield size={12} /> Coach</span>}
-                  {p.is_keeper && <span className="badge badge-keeper"><Award size={12} /> {p.keeper_type}</span>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

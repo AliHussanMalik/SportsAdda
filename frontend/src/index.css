@@ -1,9 +1,9 @@
 :root {
-  --bg-primary: #090d16;
-  --bg-card: rgba(17, 24, 39, 0.75);
-  --bg-card-hover: rgba(31, 41, 55, 0.85);
+  --bg-primary: #0b0f19;
+  --bg-card: rgba(19, 27, 46, 0.78);
+  --bg-card-hover: rgba(28, 40, 68, 0.88);
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(16, 185, 129, 0.3);
+  --border-glow: rgba(16, 185, 129, 0.35);
   
   --primary: #10b981;
   --primary-glow: rgba(16, 185, 129, 0.4);
@@ -12,12 +12,24 @@
   --accent-rose: #f43f5e;
   --accent-purple: #8b5cf6;
   
-  --text-main: #f9fafb;
-  --text-muted: #9ca3af;
-  --text-dim: #6b7280;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
 
-  --font-heading: 'Outfit', sans-serif;
-  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+[data-theme='light'] {
+  --bg-primary: #f3f4f6;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card-hover: rgba(243, 244, 246, 0.95);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --border-glow: rgba(16, 185, 129, 0.3);
+  
+  --text-main: #111827;
+  --text-muted: #4b5563;
+  --text-dim: #6b7280;
 }
 
 * {
@@ -36,6 +48,32 @@ body {
     radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.06) 0%, transparent 40%);
   background-attachment: fixed;
   overflow-x: hidden;
+}
+
+/* ThemeForest Live Match Ticker Bar */
+.themeforest-ticker-bar {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 6px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  font-weight: 700;
+  gap: 16px;
+  overflow-x: auto;
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  white-space: nowrap;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -172,6 +210,40 @@ h1, h2, h3, h4, h5, h6 {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #374151;
+}
+
+/* Form Controls & Inputs */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="datetime-local"],
+select,
+textarea {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="datetime-local"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  background: rgba(15, 23, 42, 0.75);
+}
+
+select option {
+  background-color: #0f172a;
+  color: #f8fafc;
 }
 
 /* Modal backdrop */
@@ -380,7 +452,10 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .app-top-header {
-    padding: 0 16px;
+    height: auto;
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   /* Safe Area Inset for Mobile Device Navigation Bars */
@@ -388,4 +463,268 @@ h1, h2, h3, h4, h5, h6 {
     padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
   }
 }
+
+/* Desktop vs Mobile Menu Button Visibility */
+@media (min-width: 769px) {
+  .mobile-menu-btn {
+    display: none !important;
+  }
+}
+
+/* Light Mode Overrides */
+[data-theme='light'] body {
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.05) 0%, transparent 40%);
+}
+
+[data-theme='light'] .app-sidebar {
+  background: #ffffff;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .app-top-header {
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] h1,
+[data-theme='light'] h2,
+[data-theme='light'] h3,
+[data-theme='light'] h4,
+[data-theme='light'] h5,
+[data-theme='light'] h6 {
+  color: #111827 !important;
+}
+
+[data-theme='light'] .glass-panel {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='light'] .sidebar-nav-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #111827;
+}
+
+[data-theme='light'] .sidebar-nav-item.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.1));
+  color: #059669;
+}
+
+[data-theme='light'] .theme-toggle-btn {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Colorful Theme (Sunset Amber & Warm Neon) Overrides */
+[data-theme='colorful'] {
+  --bg-primary: #120907;
+  --bg-card: rgba(36, 17, 10, 0.85);
+  --bg-card-hover: rgba(50, 24, 14, 0.95);
+  --border-color: rgba(255, 125, 32, 0.2);
+  --border-glow: rgba(255, 125, 32, 0.45);
+  
+  --primary: #ff7d20;
+  --primary-glow: rgba(255, 125, 32, 0.4);
+  --accent-cyan: #fb923c;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-purple: #a855f7;
+  
+  --text-main: #ffffff;
+  --text-muted: #fdba74;
+  --text-dim: #9a3412;
+}
+
+[data-theme='colorful'] body {
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(255, 125, 32, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(245, 158, 11, 0.12) 0%, transparent 45%);
+}
+
+[data-theme='colorful'] .app-sidebar {
+  background: linear-gradient(180deg, #1c0d06 0%, #0f0703 100%);
+  border-right: 1px solid rgba(255, 125, 32, 0.25);
+}
+
+[data-theme='colorful'] .app-top-header {
+  background: rgba(28, 13, 6, 0.85);
+  border-bottom: 1px solid rgba(255, 125, 32, 0.25);
+}
+
+[data-theme='colorful'] .glass-panel {
+  background: rgba(36, 17, 10, 0.85);
+  border: 1px solid rgba(255, 125, 32, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='colorful'] .sidebar-nav-item:hover {
+  background: rgba(255, 125, 32, 0.12);
+  color: #fff;
+}
+
+[data-theme='colorful'] .sidebar-nav-item.active {
+  background: linear-gradient(135deg, rgba(255, 125, 32, 0.3), rgba(245, 158, 11, 0.2));
+  color: #fff;
+  border: 1px solid rgba(255, 125, 32, 0.4);
+  box-shadow: 0 4px 14px rgba(255, 125, 32, 0.25);
+}
+
+[data-theme='colorful'] .btn-primary {
+  background: linear-gradient(135deg, #ff7d20, #ea580c);
+  box-shadow: 0 4px 14px rgba(255, 125, 32, 0.4);
+}
+
+/* ========================================================================== */
+/* LGBTQ PRIDE FLAG THEMES (6 Iconic Colors)                                 */
+/* ========================================================================== */
+
+/* ========================================================================== */
+/* LGBTQ PRIDE FLAG THEMES (6 Vibrant Light/Colorful Color Themes)           */
+/* ========================================================================== */
+
+/* 🔴 1. RED THEME (Life & Crimson Passion) */
+[data-theme='red'] {
+  --bg-primary: #fef2f2;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(254, 226, 226, 0.95);
+  --border-color: rgba(239, 68, 68, 0.25);
+  --border-glow: rgba(239, 68, 68, 0.4);
+  --primary: #dc2626;
+  --primary-glow: rgba(239, 68, 68, 0.35);
+  --accent-cyan: #ef4444;
+  --accent-amber: #f59e0b;
+  --text-main: #7f1d1d;
+  --text-muted: #b91c1c;
+  --text-dim: #991b1b;
+}
+[data-theme='red'] body { background-image: radial-gradient(circle at 15% 15%, rgba(239, 68, 68, 0.12) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(220, 38, 38, 0.08) 0%, transparent 45%); }
+[data-theme='red'] .app-sidebar { background: #fee2e2; border-right: 1px solid rgba(239, 68, 68, 0.2); }
+[data-theme='red'] .app-top-header { background: rgba(254, 226, 226, 0.9); border-bottom: 1px solid rgba(239, 68, 68, 0.2); }
+[data-theme='red'] h1, [data-theme='red'] h2, [data-theme='red'] h3, [data-theme='red'] h4, [data-theme='red'] label { color: #7f1d1d !important; }
+[data-theme='red'] .glass-panel { background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(239, 68, 68, 0.25); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.08); }
+[data-theme='red'] .sidebar-nav-item.active { background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.15)); color: #b91c1c; border: 1px solid rgba(239, 68, 68, 0.35); }
+[data-theme='red'] .btn-primary { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); color: #fff; }
+
+/* 🟠 2. ORANGE THEME (Healing & Sunset Ember) */
+[data-theme='orange'] {
+  --bg-primary: #fff7ed;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(254, 215, 170, 0.95);
+  --border-color: rgba(249, 115, 22, 0.25);
+  --border-glow: rgba(249, 115, 22, 0.4);
+  --primary: #ea580c;
+  --primary-glow: rgba(249, 115, 22, 0.35);
+  --accent-cyan: #f97316;
+  --accent-amber: #f59e0b;
+  --text-main: #7c2d12;
+  --text-muted: #c2410c;
+  --text-dim: #9a3412;
+}
+[data-theme='orange'] body { background-image: radial-gradient(circle at 15% 15%, rgba(249, 115, 22, 0.12) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(234, 88, 12, 0.08) 0%, transparent 45%); }
+[data-theme='orange'] .app-sidebar { background: #ffedd5; border-right: 1px solid rgba(249, 115, 22, 0.2); }
+[data-theme='orange'] .app-top-header { background: rgba(255, 237, 213, 0.9); border-bottom: 1px solid rgba(249, 115, 22, 0.2); }
+[data-theme='orange'] h1, [data-theme='orange'] h2, [data-theme='orange'] h3, [data-theme='orange'] h4, [data-theme='orange'] label { color: #7c2d12 !important; }
+[data-theme='orange'] .glass-panel { background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(249, 115, 22, 0.25); box-shadow: 0 10px 30px rgba(249, 115, 22, 0.08); }
+[data-theme='orange'] .sidebar-nav-item.active { background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(234, 88, 12, 0.15)); color: #c2410c; border: 1px solid rgba(249, 115, 22, 0.35); }
+[data-theme='orange'] .btn-primary { background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4); color: #fff; }
+
+/* 🟡 3. YELLOW THEME (Sunlight & Gold Energy) */
+[data-theme='yellow'] {
+  --bg-primary: #fefce8;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(254, 240, 138, 0.95);
+  --border-color: rgba(234, 179, 8, 0.35);
+  --border-glow: rgba(234, 179, 8, 0.45);
+  --primary: #ca8a04;
+  --primary-glow: rgba(234, 179, 8, 0.35);
+  --accent-cyan: #eab308;
+  --accent-amber: #f59e0b;
+  --text-main: #713f12;
+  --text-muted: #a16207;
+  --text-dim: #854d0e;
+}
+[data-theme='yellow'] body { background-image: radial-gradient(circle at 15% 15%, rgba(234, 179, 8, 0.15) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(202, 138, 4, 0.1) 0%, transparent 45%); }
+[data-theme='yellow'] .app-sidebar { background: #fef9c3; border-right: 1px solid rgba(234, 179, 8, 0.25); }
+[data-theme='yellow'] .app-top-header { background: rgba(254, 249, 195, 0.9); border-bottom: 1px solid rgba(234, 179, 8, 0.25); }
+[data-theme='yellow'] h1, [data-theme='yellow'] h2, [data-theme='yellow'] h3, [data-theme='yellow'] h4, [data-theme='yellow'] label { color: #713f12 !important; }
+[data-theme='yellow'] .glass-panel { background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(234, 179, 8, 0.3); box-shadow: 0 10px 30px rgba(234, 179, 8, 0.1); }
+[data-theme='yellow'] .sidebar-nav-item.active { background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(202, 138, 4, 0.18)); color: #854d0e; border: 1px solid rgba(234, 179, 8, 0.4); }
+[data-theme='yellow'] .btn-primary { background: linear-gradient(135deg, #eab308, #ca8a04); box-shadow: 0 4px 14px rgba(234, 179, 8, 0.4); color: #000; font-weight: 800; }
+
+/* 🟢 4. GREEN THEME (Nature & Emerald Pitch) */
+[data-theme='green'] {
+  --bg-primary: #f0fdf4;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(187, 247, 208, 0.95);
+  --border-color: rgba(16, 185, 129, 0.25);
+  --border-glow: rgba(16, 185, 129, 0.4);
+  --primary: #059669;
+  --primary-glow: rgba(16, 185, 129, 0.35);
+  --accent-cyan: #10b981;
+  --accent-amber: #f59e0b;
+  --text-main: #064e3b;
+  --text-muted: #047857;
+  --text-dim: #065f46;
+}
+[data-theme='green'] body { background-image: radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.12) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(5, 150, 105, 0.08) 0%, transparent 45%); }
+[data-theme='green'] .app-sidebar { background: #dcfce7; border-right: 1px solid rgba(16, 185, 129, 0.2); }
+[data-theme='green'] .app-top-header { background: rgba(220, 252, 231, 0.9); border-bottom: 1px solid rgba(16, 185, 129, 0.2); }
+[data-theme='green'] h1, [data-theme='green'] h2, [data-theme='green'] h3, [data-theme='green'] h4, [data-theme='green'] label { color: #064e3b !important; }
+[data-theme='green'] .glass-panel { background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(16, 185, 129, 0.25); box-shadow: 0 10px 30px rgba(16, 185, 129, 0.08); }
+[data-theme='green'] .sidebar-nav-item.active { background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.15)); color: #047857; border: 1px solid rgba(16, 185, 129, 0.35); }
+[data-theme='green'] .btn-primary { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); color: #fff; }
+
+/* 🔵 5. BLUE THEME (Serenity & Sapphire Cyber) */
+[data-theme='blue'] {
+  --bg-primary: #eff6ff;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(191, 219, 254, 0.95);
+  --border-color: rgba(59, 130, 246, 0.25);
+  --border-glow: rgba(59, 130, 246, 0.4);
+  --primary: #2563eb;
+  --primary-glow: rgba(59, 130, 246, 0.35);
+  --accent-cyan: #3b82f6;
+  --accent-amber: #f59e0b;
+  --text-main: #1e3a8a;
+  --text-muted: #1d4ed8;
+  --text-dim: #1e40af;
+}
+[data-theme='blue'] body { background-image: radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(37, 99, 235, 0.08) 0%, transparent 45%); }
+[data-theme='blue'] .app-sidebar { background: #dbeafe; border-right: 1px solid rgba(59, 130, 246, 0.2); }
+[data-theme='blue'] .app-top-header { background: rgba(219, 234, 254, 0.9); border-bottom: 1px solid rgba(59, 130, 246, 0.2); }
+[data-theme='blue'] h1, [data-theme='blue'] h2, [data-theme='blue'] h3, [data-theme='blue'] h4, [data-theme='blue'] label { color: #1e3a8a !important; }
+[data-theme='blue'] .glass-panel { background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(59, 130, 246, 0.25); box-shadow: 0 10px 30px rgba(59, 130, 246, 0.08); }
+[data-theme='blue'] .sidebar-nav-item.active { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.15)); color: #1d4ed8; border: 1px solid rgba(59, 130, 246, 0.35); }
+[data-theme='blue'] .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4); color: #fff; }
+
+/* 🟣 6. PURPLE THEME (Spirit & Royal Violet) */
+[data-theme='purple'] {
+  --bg-primary: #faf5ff;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(221, 214, 254, 0.95);
+  --border-color: rgba(139, 92, 246, 0.25);
+  --border-glow: rgba(139, 92, 246, 0.4);
+  --primary: #7c3aed;
+  --primary-glow: rgba(139, 92, 246, 0.35);
+  --accent-cyan: #8b5cf6;
+  --accent-amber: #f59e0b;
+  --text-main: #4c1d95;
+  --text-muted: #6d28d9;
+  --text-dim: #5b21b6;
+}
+[data-theme='purple'] body { background-image: radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.12) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(124, 58, 237, 0.08) 0%, transparent 45%); }
+[data-theme='purple'] .app-sidebar { background: #f3e8ff; border-right: 1px solid rgba(139, 92, 246, 0.2); }
+[data-theme='purple'] .app-top-header { background: rgba(243, 232, 255, 0.9); border-bottom: 1px solid rgba(139, 92, 246, 0.2); }
+[data-theme='purple'] h1, [data-theme='purple'] h2, [data-theme='purple'] h3, [data-theme='purple'] h4, [data-theme='purple'] label { color: #4c1d95 !important; }
+[data-theme='purple'] .glass-panel { background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(139, 92, 246, 0.25); box-shadow: 0 10px 30px rgba(139, 92, 246, 0.08); }
+[data-theme='purple'] .sidebar-nav-item.active { background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.15)); color: #6d28d9; border: 1px solid rgba(139, 92, 246, 0.35); }
+[data-theme='purple'] .btn-primary { background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4); color: #fff; }
+
+
+
+
+
 

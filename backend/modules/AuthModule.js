@@ -4,11 +4,11 @@ const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const { z } = require('zod');
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const REFRESH_SECRET = process.env.REFRESH_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_sportsadda_jwt_secret_key_2026_local';
+const REFRESH_SECRET = process.env.REFRESH_SECRET || 'dev_sportsadda_refresh_secret_key_2026_local';
 
-if (!JWT_SECRET || !REFRESH_SECRET) {
-  console.warn('⚠️ WARNING: JWT_SECRET or REFRESH_SECRET environment variable is missing.');
+if (!process.env.JWT_SECRET || !process.env.REFRESH_SECRET) {
+  console.warn('⚠️ WARNING: JWT_SECRET or REFRESH_SECRET environment variable is missing. Using development fallback key.');
 }
 
 // Rate Limiter middleware for authentication endpoints
@@ -23,7 +23,7 @@ const RegisterSchema = z.object({
   display_name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(['ADMIN', 'SCORER', 'PLAYER']).optional().default('PLAYER'),
+  role: z.enum(['ADMIN', 'SCORER', 'PLAYER', 'INDOOR_OWNER']).optional().default('PLAYER'),
   primary_sport: z.string().optional().default('FUTSAL'),
   preferred_role: z.string().optional(),
   jersey_number: z.number().int().optional()

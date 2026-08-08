@@ -4,6 +4,7 @@ import { API_BASE } from '../config';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import ThemeSelector from '../components/ThemeSelector';
+import NotificationBellMobile from '../components/NotificationBellMobile';
 
 export default function AuthScreen() {
   const { theme } = useTheme();
@@ -18,7 +19,8 @@ export default function AuthScreen() {
   // Form State
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
-  const [primarySport, setPrimarySport] = useState('FUTSAL');
+  const [accountRole, setAccountRole] = useState('PLAYER'); // 'PLAYER' or 'INDOOR_OWNER'
+  const [primarySport, setPrimarySport] = useState('CRICKET');
   const [jerseyNumber, setJerseyNumber] = useState('10');
 
   // Edit Mode State for logged-in user
@@ -44,8 +46,10 @@ export default function AuthScreen() {
   };
 
   useEffect(() => {
-    fetchAllProfiles();
-  }, []);
+    if (user && (user.role === 'INDOOR_OWNER' || user.role === 'ADMIN')) {
+      fetchAllProfiles();
+    }
+  }, [user]);
 
   const handleLogin = async () => {
     if (!displayName.trim() || !password.trim()) {
@@ -61,7 +65,6 @@ export default function AuthScreen() {
     } else {
       setDisplayName('');
       setPassword('');
-      fetchAllProfiles();
     }
   };
 
@@ -79,6 +82,7 @@ export default function AuthScreen() {
     const res = await register({
       display_name: displayName,
       password: password,
+      role: accountRole,
       primary_sport: primarySport,
       jersey_number: parseInt(jerseyNumber) || 10
     });
@@ -88,7 +92,6 @@ export default function AuthScreen() {
     } else {
       setDisplayName('');
       setPassword('');
-      fetchAllProfiles();
     }
   };
 
@@ -170,9 +173,36 @@ export default function AuthScreen() {
 
           {mode === 'register' && (
             <>
+              <Text style={[styles.formLabel, { color: theme.subText, marginTop: 12 }]}>Account Role & Capabilities</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                <TouchableOpacity
+                  style={[
+                    styles.sportChip,
+                    accountRole === 'PLAYER' ? { backgroundColor: theme.accent } : { backgroundColor: theme.badgeBg }
+                  ]}
+                  onPress={() => setAccountRole('PLAYER')}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: accountRole === 'PLAYER' ? '#fff' : theme.text }}>
+                    🏃 Player
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.sportChip,
+                    accountRole === 'INDOOR_OWNER' ? { backgroundColor: '#f59e0b' } : { backgroundColor: theme.badgeBg }
+                  ]}
+                  onPress={() => setAccountRole('INDOOR_OWNER')}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: accountRole === 'INDOOR_OWNER' ? '#000' : theme.text }}>
+                    🏢 Indoor Owner
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <Text style={[styles.formLabel, { color: theme.subText, marginTop: 12 }]}>Primary Sport</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                {['FUTSAL', 'CRICKET', 'PADEL'].map((s) => (
+                {['CRICKET', 'FUTSAL', 'PADEL'].map((s) => (
                   <TouchableOpacity
                     key={s}
                     style={[
@@ -182,7 +212,7 @@ export default function AuthScreen() {
                     onPress={() => setPrimarySport(s)}
                   >
                     <Text style={{ fontSize: 11, fontWeight: '800', color: primarySport === s ? '#fff' : theme.text }}>
-                      {s === 'FUTSAL' ? '⚽ Futsal' : s === 'CRICKET' ? '🏏 Cricket' : '🎾 Padel'}
+                      {s === 'CRICKET' ? '🏏 Cricket' : s === 'FUTSAL' ? '⚽ Futsal' : '🎾 Padel'}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -214,35 +244,20 @@ export default function AuthScreen() {
             )}
           </TouchableOpacity>
 
-          <Text style={[styles.passwordHint, { color: theme.subText }]}>
-            💡 Your browser / phone will offer to save your password automatically.
-          </Text>
+          {/* <Text style={[styles.passwordHint, { color: theme.subText }]}>
+            💡 Your credentials and player account settings are saved securely.
+          </Text> */}
         </View>
 
-        {/* Public Player Directory (Read-Only) */}
-        <Text style={[styles.sectionHeading, { color: theme.text, marginTop: 24 }]}>
-          👥 Registered Players Directory ({profiles.length})
-        </Text>
-        {loadingProfiles ? (
-          <ActivityIndicator color={theme.accent} style={{ marginTop: 12 }} />
-        ) : (
-          profiles.map((p) => (
-            <View key={p.user_id} style={[styles.readOnlyCard, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
-                  <Text style={styles.avatarText}>#{p.jersey_number || 0}</Text>
-                </View>
-                <View style={{ marginLeft: 12, flex: 1 }}>
-                  <Text style={[styles.name, { color: theme.text }]}>{p.display_name}</Text>
-                  <Text style={[styles.sportRole, { color: theme.subText }]}>{p.primary_sport} • {p.preferred_role || 'Player'}</Text>
-                </View>
-                <View style={[styles.badge, p.subscription_tier === 'PRO' ? styles.badgePro : styles.badgeFree]}>
-                  <Text style={styles.badgeText}>{p.subscription_tier}</Text>
-                </View>
-              </View>
-            </View>
-          ))
-        )}
+        {/* Security & Privacy Banner for Unauthenticated Users */}
+        {/* <View style={[styles.formCard, { backgroundColor: theme.cardBg, borderColor: theme.border, alignItems: 'center', padding: 20 }]}> */}
+        {/* <Text style={{ fontSize: 14, fontWeight: '800', color: theme.accent, marginBottom: 4 }}>
+            🔒 Privacy & Account Protection
+          </Text> */}
+        {/* <Text style={{ fontSize: 11, color: theme.subText, textAlign: 'center', lineHeight: 16 }}>
+            SportsAdda protects player data. Public user directories are hidden from non-authenticated and regular player views.
+          </Text>
+        </View> */}
       </ScrollView>
     );
   }
@@ -257,9 +272,13 @@ export default function AuthScreen() {
           <Text style={[styles.title, { color: theme.text }]}>👤 My Account & Profile</Text>
           <Text style={[styles.subtitle, { color: theme.subText }]}>Welcome back, {user.display_name}!</Text>
         </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutBtnText}>🚪 Log Out</Text>
-        </TouchableOpacity>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <NotificationBellMobile />
+          <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+            <Text style={styles.logoutBtnText}>🚪 Log Out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ThemeSelector />
@@ -274,9 +293,12 @@ export default function AuthScreen() {
             <Text style={[styles.name, { color: theme.text, fontSize: 18 }]}>{user.display_name}</Text>
             <Text style={[styles.sportRole, { color: theme.subText }]}>{user.primary_sport} • {user.preferred_role || 'Player'}</Text>
             <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+              <View style={[styles.miniBadge, { backgroundColor: user.role === 'INDOOR_OWNER' ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)' }]}>
+                <Text style={{ color: user.role === 'INDOOR_OWNER' ? '#f59e0b' : '#10b981', fontWeight: '800', fontSize: 10 }}>
+                  {user.role === 'INDOOR_OWNER' ? '🏢 INDOOR OWNER' : '🏃 PLAYER'}
+                </Text>
+              </View>
               {user.is_captain && <View style={[styles.miniBadge, { backgroundColor: 'rgba(16,185,129,0.2)' }]}><Text style={{ color: '#10b981', fontWeight: '800', fontSize: 10 }}>👑 CAPTAIN</Text></View>}
-              {user.is_coach && <View style={[styles.miniBadge, { backgroundColor: 'rgba(139,92,246,0.2)' }]}><Text style={{ color: '#a78bfa', fontWeight: '800', fontSize: 10 }}>📋 COACH</Text></View>}
-              {user.is_keeper && <View style={[styles.miniBadge, { backgroundColor: 'rgba(6,182,212,0.2)' }]}><Text style={{ color: '#22d3ee', fontWeight: '800', fontSize: 10 }}>🧤 KEEPER</Text></View>}
             </View>
           </View>
           <View style={[styles.badge, user.subscription_tier === 'PRO' ? styles.badgePro : styles.badgeFree]}>
@@ -329,41 +351,58 @@ export default function AuthScreen() {
         )}
       </View>
 
-      {/* Read-Only Player Directory */}
-      <Text style={[styles.sectionHeading, { color: theme.text, marginTop: 24 }]}>
-        👥 Other Players Directory ({profiles.length})
-      </Text>
-      <Text style={[styles.subtitle, { color: theme.subText }]}>
-        (You can view other players, but you can only edit your own profile)
-      </Text>
+      {/* Directory Logic: Show Privacy Card for Regular Players, Roster for Owners */}
+      {user.role === 'PLAYER' || !user.role ? (
+        <View style={[styles.formCard, { backgroundColor: theme.cardBg, borderColor: 'rgba(16,185,129,0.4)', padding: 20, alignItems: 'center', marginTop: 16 }]}>
+          {/* <Text style={{ fontSize: 15, fontWeight: '800', color: theme.accent, marginBottom: 6 }}>
+            🔒 Player Account Privacy Protected
+          </Text>
+          <Text style={{ fontSize: 12, color: theme.subText, textAlign: 'center', lineHeight: 18 }}>
+            Your account credentials, match bookings, and statistics are private to your logged-in account. The global player directory is restricted from regular player views.
+          </Text> */}
+        </View>
+      ) : (
+        <>
+          <Text style={[styles.sectionHeading, { color: theme.text, marginTop: 24 }]}>
+            👥 Arena Roster Directory ({profiles.length})
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.subText }]}>
+            (Indoor Owner View for Arena Roster Management)
+          </Text>
 
-      {profiles.map((p) => {
-        const isSelf = p.user_id === user.user_id;
-        return (
-          <View
-            key={p.user_id}
-            style={[
-              styles.readOnlyCard,
-              { backgroundColor: theme.cardBg, borderColor: isSelf ? theme.accent : theme.border }
-            ]}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={[styles.avatar, { backgroundColor: isSelf ? theme.accent : '#4b5563' }]}>
-                <Text style={styles.avatarText}>#{p.jersey_number || 0}</Text>
-              </View>
-              <View style={{ marginLeft: 12, flex: 1 }}>
-                <Text style={[styles.name, { color: theme.text }]}>
-                  {p.display_name} {isSelf && <Text style={{ color: theme.accent, fontSize: 12 }}>(You)</Text>}
-                </Text>
-                <Text style={[styles.sportRole, { color: theme.subText }]}>{p.primary_sport} • {p.preferred_role || 'Player'}</Text>
-              </View>
-              <View style={[styles.badge, p.subscription_tier === 'PRO' ? styles.badgePro : styles.badgeFree]}>
-                <Text style={styles.badgeText}>{p.subscription_tier}</Text>
-              </View>
-            </View>
-          </View>
-        );
-      })}
+          {loadingProfiles ? (
+            <ActivityIndicator color={theme.accent} style={{ marginTop: 12 }} />
+          ) : (
+            profiles.map((p) => {
+              const isSelf = p.user_id === user.user_id;
+              return (
+                <View
+                  key={p.user_id}
+                  style={[
+                    styles.readOnlyCard,
+                    { backgroundColor: theme.cardBg, borderColor: isSelf ? theme.accent : theme.border }
+                  ]}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={[styles.avatar, { backgroundColor: isSelf ? theme.accent : '#4b5563' }]}>
+                      <Text style={styles.avatarText}>#{p.jersey_number || 0}</Text>
+                    </View>
+                    <View style={{ marginLeft: 12, flex: 1 }}>
+                      <Text style={[styles.name, { color: theme.text }]}>
+                        {p.display_name} {isSelf && <Text style={{ color: theme.accent, fontSize: 12 }}>(You)</Text>}
+                      </Text>
+                      <Text style={[styles.sportRole, { color: theme.subText }]}>{p.primary_sport} • {p.role || 'PLAYER'}</Text>
+                    </View>
+                    <View style={[styles.badge, p.subscription_tier === 'PRO' ? styles.badgePro : styles.badgeFree]}>
+                      <Text style={styles.badgeText}>{p.subscription_tier}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </>
+      )}
     </ScrollView>
   );
 }
