@@ -669,6 +669,122 @@ function createBookingRouter(pool, io) {
       }
     });
 
+    // 11. Register / Update Indoor Arena Details (Name, Address, Rates, Operating Days & Times)
+    router.post('/owner/arenas', async (req, res) => {
+      try {
+        const { owner_id, name, address, city, hourly_rate, facilities, operating_days, opening_time, closing_time } = req.body;
+        if (!owner_id || !name || !address) {
+          return res.status(400).json({ success: false, error: 'owner_id, name, and address are required' });
+        }
+
+        const { rows } = await pool.query(
+          `INSERT INTO indoor_arenas (
+             owner_id, name, address, city, hourly_rate, facilities, operating_days, opening_time, closing_time
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;`,
+          [
+            owner_id,
+            name,
+            address,
+            city || 'Lahore',
+            parseFloat(hourly_rate || 2500),
+            JSON.stringify(facilities || []),
+            JSON.stringify(operating_days || ["MON","TUE","WED","THU","FRI","SAT","SUN"]),
+            opening_time || '08:00:00',
+            closing_time || '24:00:00'
+          ]
+        );
+
+        res.json({ success: true, arena: rows[0] });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+
+    // 12. Add Pitch to Arena
+    router.post('/owner/pitches', async (req, res) => {
+      try {
+        const { arena_id, pitch_name, pitch_type, hourly_rate, bowling_machine_fee, has_bowling_machine } = req.body;
+        if (!arena_id || !pitch_name) {
+          return res.status(400).json({ success: false, error: 'arena_id and pitch_name are required' });
+        }
+
+        const { rows } = await pool.query(
+          `INSERT INTO indoor_cricket_pitches (
+             arena_id, pitch_name, pitch_type, hourly_rate, bowling_machine_fee, has_bowling_machine
+           ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`,
+          [
+            arena_id,
+            pitch_name,
+            pitch_type || 'TURF',
+            parseFloat(hourly_rate || 2500),
+            parseFloat(bowling_machine_fee || 500),
+            has_bowling_machine !== undefined ? has_bowling_machine : true
+          ]
+        );
+
+        res.json({ success: true, pitch: rows[0] });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+
+    // 13. Accept / Approve Booking Reservation Request
+    router.patch('/cricket-bookings/:booking_id/approve', async (req, res) => {
+      try {
+        const { booking_id } = req.params;
+        const { rows } = await pool.query(
+          `UPDATE indoor_cricket_bookings SET booking_status = 'APPROVED' WHERE id = $1 RETURNING *;`,
+          [booking_id]
+        );
+        if (rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Booking not found' });
+        }
+        const booking = rows[0];
+
+        sendNotification(pool, io, {
+          user_id: booking.booked_by_user_id,
+          type: 'BOOKING_APPROVED',
+          title: '✅ Reservation Request Approved!',
+          message: `Your booking for Team '${booking.team_name}' has been approved by the Indoor Arena Owner.`,
+          payload: { booking_id }
+        });
+
+        res.json({ success: true, booking, message: 'Reservation request approved.' });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+
+    // 14. Decline / Reject Booking Reservation Request
+    router.patch('/cricket-bookings/:booking_id/reject', async (req, res) => {
+      try {
+        const { booking_id } = req.params;
+        const { rows } = await pool.query(
+          `UPDATE indoor_cricket_bookings SET booking_status = 'REJECTED' WHERE id = $1 RETURNING *;`,
+          [booking_id]
+        );
+        if (rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Booking not found' });
+        }
+        const booking = rows[0];
+
+        // Release slot back to OPEN
+        await pool.query(`UPDATE indoor_pitch_slots SET status = 'OPEN' WHERE id = $1;`, [booking.slot_id]);
+
+        sendNotification(pool, io, {
+          user_id: booking.booked_by_user_id,
+          type: 'BOOKING_REJECTED',
+          title: '❌ Reservation Request Declined',
+          message: `Your booking request for Team '${booking.team_name}' was declined by the Indoor Arena Owner. Slot released.`,
+          payload: { booking_id }
+        });
+
+        res.json({ success: true, booking, message: 'Reservation request declined and slot released.' });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+
     // 11. Retrieve Digital QR Pass & Receipt metadata
     router.get('/cricket-bookings/:booking_id/pass', async (req, res) => {
       try {

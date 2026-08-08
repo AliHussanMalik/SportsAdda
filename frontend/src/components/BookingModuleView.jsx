@@ -211,6 +211,30 @@ export default function BookingModuleView() {
     }
   };
 
+  const handleApproveReservation = async (bookingId) => {
+    try {
+      const res = await fetch(`/api/bookings/cricket-bookings/${bookingId}/approve`, { method: 'PATCH' });
+      const data = await res.json();
+      if (data.success) {
+        fetchOwnerCricketData();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRejectReservation = async (bookingId) => {
+    try {
+      const res = await fetch(`/api/bookings/cricket-bookings/${bookingId}/reject`, { method: 'PATCH' });
+      const data = await res.json();
+      if (data.success) {
+        fetchOwnerCricketData();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const fetchPitchSlots = async () => {
     if (!selectedPitchForSlot) return;
     try {
@@ -758,7 +782,26 @@ export default function BookingModuleView() {
                               {b.booking_status}
                             </span>
                           </td>
-                          <td style={{ padding: '10px', textAlign: 'right', display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <td style={{ padding: '10px', textAlign: 'right', display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            {b.booking_status === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveReservation(b.id)}
+                                  className="btn btn-primary"
+                                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                                >
+                                  ✅ Accept Request
+                                </button>
+                                <button
+                                  onClick={() => handleRejectReservation(b.id)}
+                                  className="btn"
+                                  style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', cursor: 'pointer' }}
+                                >
+                                  ❌ Reject
+                                </button>
+                              </>
+                            )}
+
                             {b.booking_status === 'APPROVED' && (
                               <button
                                 onClick={() => handleUpdateBookingStatus(b.id, 'CHECKED_IN')}
@@ -768,7 +811,7 @@ export default function BookingModuleView() {
                                 🎟️ Kiosk Check-In
                               </button>
                             )}
-                            {b.booking_status !== 'CANCELLED' && (
+                            {b.booking_status !== 'CANCELLED' && b.booking_status !== 'REJECTED' && (
                               <button
                                 onClick={() => handleCancelBooking(b.id)}
                                 className="btn"
