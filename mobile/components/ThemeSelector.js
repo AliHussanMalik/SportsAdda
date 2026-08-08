@@ -16,12 +16,12 @@ export default function ThemeSelector() {
         <TouchableOpacity
           style={[
             styles.optionBtn,
-            { borderColor: theme.border },
-            themeMode === 'dark' && { backgroundColor: theme.accent, borderColor: theme.accent }
+            { borderColor: theme.border, backgroundColor: themeMode === 'dark' ? theme.accent : 'transparent' }
           ]}
           onPress={() => setThemeMode('dark')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.optionText, { color: themeMode === 'dark' ? '#fff' : theme.text }]}>
+          <Text style={[styles.optionText, { color: themeMode === 'dark' ? '#ffffff' : theme.text }]}>
             🌙 Dark
           </Text>
         </TouchableOpacity>
@@ -29,12 +29,12 @@ export default function ThemeSelector() {
         <TouchableOpacity
           style={[
             styles.optionBtn,
-            { borderColor: theme.border },
-            themeMode === 'light' && { backgroundColor: theme.accent, borderColor: theme.accent }
+            { borderColor: theme.border, backgroundColor: themeMode === 'light' ? theme.accent : 'transparent' }
           ]}
           onPress={() => setThemeMode('light')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.optionText, { color: themeMode === 'light' ? '#fff' : theme.text }]}>
+          <Text style={[styles.optionText, { color: themeMode === 'light' ? '#ffffff' : theme.text }]}>
             ☀️ Light
           </Text>
         </TouchableOpacity>
@@ -42,12 +42,12 @@ export default function ThemeSelector() {
         <TouchableOpacity
           style={[
             styles.optionBtn,
-            { borderColor: theme.border },
-            themeMode === 'system' && { backgroundColor: theme.accent, borderColor: theme.accent }
+            { borderColor: theme.border, backgroundColor: themeMode === 'system' ? theme.accent : 'transparent' }
           ]}
           onPress={() => setThemeMode('system')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.optionText, { color: themeMode === 'system' ? '#fff' : theme.text }]}>
+          <Text style={[styles.optionText, { color: themeMode === 'system' ? '#ffffff' : theme.text }]}>
             📱 System
           </Text>
         </TouchableOpacity>
@@ -61,16 +61,16 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 16
+    marginBottom: 8
   },
   title: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     marginBottom: 2
   },
   subtitle: {
     fontSize: 11,
-    marginBottom: 12
+    marginBottom: 10
   },
   buttonGroup: {
     flexDirection: 'row',
@@ -78,9 +78,10 @@ const styles = StyleSheet.create({
   },
   optionBtn: {
     flex: 1,
-    paddingVertical: 10,
+    minHeight: 48,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1
   },
   optionText: {

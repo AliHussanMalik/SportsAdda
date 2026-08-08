@@ -13,7 +13,7 @@ export default function SidebarDrawer({
   onOpenSportsStore,
   onOpenLiveCricket
 }) {
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   if (!visible) return null;
 
@@ -21,6 +21,19 @@ export default function SidebarDrawer({
     setActiveTab(tab);
     onClose();
   };
+
+  const navItemsCore = [
+    { id: 'profiles', label: 'Player Profiles & Roles', icon: '👤' },
+    { id: 'bookings', label: 'Indoor Pitch Bookings', icon: '🏟️' },
+    { id: 'teams', label: 'Teams & Squad Rosters', icon: '👥' }
+  ];
+
+  const navItemsEngines = [
+    { label: 'Single-Scorer Engine', icon: '🏏', action: onOpenScoringConsole },
+    { label: 'Tournament Tree Brackets', icon: '🏆', action: onOpenTournaments },
+    { label: 'Sports Store & Sponsored Ads', icon: '🛍️', action: onOpenSportsStore },
+    { label: 'Live Cricket Feed (RSS)', icon: '📻', action: onOpenLiveCricket }
+  ];
 
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
@@ -30,16 +43,16 @@ export default function SidebarDrawer({
           {/* Header */}
           <View style={[styles.drawerHeader, { borderBottomColor: theme.border }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={styles.logoBadge}>
-                <Text style={{ fontSize: 14, color: '#fff', fontWeight: '900' }}>SA</Text>
+              <View style={[styles.logoBadge, { backgroundColor: theme.accent }]}>
+                <Text style={styles.logoBadgeText}>SA</Text>
               </View>
               <View>
                 <Text style={[styles.drawerTitle, { color: theme.text }]}>SportsAdda</Text>
                 <Text style={[styles.drawerSubtitle, { color: theme.subText }]}>Indoor Sports Ecosystem</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={{ color: theme.subText, fontSize: 18, fontWeight: '800' }}>✕</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={{ color: theme.subText, fontSize: 20, fontWeight: '800' }}>✕</Text>
             </TouchableOpacity>
           </View>
 
@@ -47,84 +60,44 @@ export default function SidebarDrawer({
           <ScrollView style={{ flex: 1, paddingVertical: 12 }}>
             <Text style={[styles.sectionTitle, { color: theme.subText }]}>CORE MANAGEMENT</Text>
 
-            <TouchableOpacity
-              style={[styles.navItem, activeTab === 'profiles' && { backgroundColor: theme.badgeBg }]}
-              onPress={() => navigateToTab('profiles')}
-            >
-              <Text style={[styles.navLabel, { color: activeTab === 'profiles' ? theme.accent : theme.text }]}>
-                Player Profiles & Roles
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.navItem, activeTab === 'bookings' && { backgroundColor: theme.badgeBg }]}
-              onPress={() => navigateToTab('bookings')}
-            >
-              <Text style={[styles.navLabel, { color: activeTab === 'bookings' ? theme.accent : theme.text }]}>
-                Indoor Pitch Bookings
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.navItem, activeTab === 'teams' && { backgroundColor: theme.badgeBg }]}
-              onPress={() => navigateToTab('teams')}
-            >
-              <Text style={[styles.navLabel, { color: activeTab === 'teams' ? theme.accent : theme.text }]}>
-                Teams & Squad Rosters
-              </Text>
-            </TouchableOpacity>
+            {navItemsCore.map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[
+                    styles.navItem,
+                    isActive && { backgroundColor: theme.badgeBg, borderColor: theme.accent, borderWidth: 1 }
+                  ]}
+                  onPress={() => navigateToTab(item.id)}
+                >
+                  <Text style={styles.navIcon}>{item.icon}</Text>
+                  <Text style={[styles.navLabel, { color: isActive ? theme.accent : theme.text }]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
 
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
             <Text style={[styles.sectionTitle, { color: theme.subText }]}>MATCH ENGINE & MODALS</Text>
 
-            <TouchableOpacity
-              style={styles.navItem}
-              onPress={() => {
-                onClose();
-                onOpenScoringConsole();
-              }}
-            >
-              <Text style={[styles.navLabel, { color: '#06b6d4' }]}>
-                Single-Scorer Engine
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navItem}
-              onPress={() => {
-                onClose();
-                onOpenTournaments();
-              }}
-            >
-              <Text style={[styles.navLabel, { color: '#8b5cf6' }]}>
-                Tournament Tree Brackets
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navItem}
-              onPress={() => {
-                onClose();
-                onOpenSportsStore();
-              }}
-            >
-              <Text style={[styles.navLabel, { color: '#f59e0b' }]}>
-                Sports Store & Sponsored Ads
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navItem}
-              onPress={() => {
-                onClose();
-                onOpenLiveCricket();
-              }}
-            >
-              <Text style={[styles.navLabel, { color: theme.accent }]}>
-                Live Cricket Feed (RSS)
-              </Text>
-            </TouchableOpacity>
+            {navItemsEngines.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.navItem}
+                onPress={() => {
+                  onClose();
+                  if (item.action) item.action();
+                }}
+              >
+                <Text style={styles.navIcon}>{item.icon}</Text>
+                <Text style={[styles.navLabel, { color: theme.text }]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
 
           {/* Footer Theme Control */}
@@ -173,9 +146,13 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: '#10b981',
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  logoBadgeText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '900'
   },
   drawerTitle: {
     fontSize: 16,
@@ -186,7 +163,11 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   closeBtn: {
-    padding: 6
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   sectionTitle: {
     fontSize: 10,
@@ -200,14 +181,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    minHeight: 50,
     marginHorizontal: 8,
-    marginVertical: 2,
-    borderRadius: 10
+    marginVertical: 3,
+    borderRadius: 12
   },
   navIcon: {
     fontSize: 18,
-    marginRight: 12
+    marginRight: 14
   },
   navLabel: {
     fontSize: 13,
@@ -221,14 +202,5 @@ const styles = StyleSheet.create({
   drawerFooter: {
     padding: 16,
     borderTopWidth: 1
-  },
-  themeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  themeBtnText: {
-    fontSize: 13,
-    fontWeight: '700'
   }
 });
