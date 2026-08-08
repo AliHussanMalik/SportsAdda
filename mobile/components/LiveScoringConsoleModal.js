@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE } from '../config';
+
+let AsyncStorage;
+try {
+  AsyncStorage = require('@react-native-async-storage/async-storage').default || require('@react-native-async-storage/async-storage');
+} catch (e) {
+  const memoryStore = {};
+  AsyncStorage = {
+    getItem: async (key) => memoryStore[key] || null,
+    setItem: async (key, val) => { memoryStore[key] = val; },
+    removeItem: async (key) => { delete memoryStore[key]; }
+  };
+}
 
 /**
  * Mobile Offline-First Live Scoring Console Modal
