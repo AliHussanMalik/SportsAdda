@@ -4,8 +4,12 @@ const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const { z } = require('zod');
 
-const JWT_SECRET = process.env.JWT_SECRET || '';
-const REFRESH_SECRET = process.env.REFRESH_SECRET || '';
+const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
+
+if (!JWT_SECRET || !REFRESH_SECRET) {
+  console.warn('⚠️ WARNING: JWT_SECRET or REFRESH_SECRET environment variable is missing.');
+}
 
 // Rate Limiter middleware for authentication endpoints
 const authLimiter = rateLimit({

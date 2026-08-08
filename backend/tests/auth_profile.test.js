@@ -7,7 +7,8 @@ const { z } = require('zod');
 const createAuthRouter = require('../modules/AuthModule');
 const { authenticateToken, authorizeRoles } = createAuthRouter;
 
-const JWT_SECRET = process.env.JWT_SECRET || '';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_environment_jwt_secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 describe('1. Authentication & JWT Unit Tests', () => {
   it('should sign and verify valid JWT access tokens', () => {
