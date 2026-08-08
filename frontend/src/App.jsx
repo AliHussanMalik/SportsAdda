@@ -19,13 +19,14 @@ import {
   X,
   Palette
 } from 'lucide-react';
-import AuthModuleView from './components/AuthModuleView';
-import TeamModuleView from './components/TeamModuleView';
-import BookingModuleView from './components/BookingModuleView';
-import ScoringConsoleView from './components/ScoringConsoleView';
-import PublicScoreboardView from './components/PublicScoreboardView';
-import AwardsAnalyticsView from './components/AwardsAnalyticsView';
 import NotificationBell from './components/NotificationBell';
+
+const AuthModuleView = React.lazy(() => import('./components/AuthModuleView'));
+const TeamModuleView = React.lazy(() => import('./components/TeamModuleView'));
+const BookingModuleView = React.lazy(() => import('./components/BookingModuleView'));
+const ScoringConsoleView = React.lazy(() => import('./components/ScoringConsoleView'));
+const PublicScoreboardView = React.lazy(() => import('./components/PublicScoreboardView'));
+const AwardsAnalyticsView = React.lazy(() => import('./components/AwardsAnalyticsView'));
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('scoring');
@@ -344,14 +345,20 @@ export default function App() {
 
         {/* View Component Container */}
         <main style={{ flex: 1, padding: '24px 32px', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
-          {activeTab === 'profiles' && <AuthModuleView />}
-          {activeTab === 'teams' && <TeamModuleView />}
-          {activeTab === 'bookings' && <BookingModuleView />}
-          {activeTab === 'scoring' && (
-            <ScoringConsoleView activeMatchId={activeMatchId} setActiveMatchId={setActiveMatchId} />
-          )}
-          {activeTab === 'viewer' && <PublicScoreboardView activeMatchId={activeMatchId} />}
-          {activeTab === 'awards' && <AwardsAnalyticsView activeMatchId={activeMatchId} />}
+          <React.Suspense fallback={
+            <div style={{ padding: '60px', textAlign: 'center', color: '#10b981', fontWeight: 800 }}>
+              ⚡ Loading View Module...
+            </div>
+          }>
+            {activeTab === 'profiles' && <AuthModuleView />}
+            {activeTab === 'teams' && <TeamModuleView />}
+            {activeTab === 'bookings' && <BookingModuleView />}
+            {activeTab === 'scoring' && (
+              <ScoringConsoleView activeMatchId={activeMatchId} setActiveMatchId={setActiveMatchId} />
+            )}
+            {activeTab === 'viewer' && <PublicScoreboardView activeMatchId={activeMatchId} />}
+            {activeTab === 'awards' && <AwardsAnalyticsView activeMatchId={activeMatchId} />}
+          </React.Suspense>
         </main>
 
         {/* Footer */}

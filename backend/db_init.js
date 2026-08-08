@@ -222,9 +222,21 @@ ADD COLUMN IF NOT EXISTS is_custom_ground BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS custom_ground_id UUID REFERENCES custom_grounds(id) ON DELETE SET NULL,
 ADD COLUMN IF NOT EXISTS total_overs INT DEFAULT 10,
 ADD COLUMN IF NOT EXISTS playing_squad_count INT DEFAULT 11,
-ADD COLUMN IF NOT EXISTS max_wickets INT DEFAULT 10;
+ADD COLUMN IF NOT EXISTS max_wickets INT DEFAULT 10,
+ADD COLUMN IF NOT EXISTS current_turn_team_id UUID REFERENCES teams(id),
+ADD COLUMN IF NOT EXISTS current_striker_id UUID REFERENCES player_profiles(user_id),
+ADD COLUMN IF NOT EXISTS current_non_striker_id UUID REFERENCES player_profiles(user_id),
+ADD COLUMN IF NOT EXISTS current_bowler_id UUID REFERENCES player_profiles(user_id),
+ADD COLUMN IF NOT EXISTS first_innings_total_runs INT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS first_innings_wickets INT DEFAULT 0;
 
 ALTER TABLE match_fixtures ALTER COLUMN court_booking_id DROP NOT NULL;
+
+-- Database Performance B-Tree Indexes
+CREATE INDEX IF NOT EXISTS idx_indoor_pitch_slots_date_status ON indoor_pitch_slots(pitch_id, slot_date, status);
+CREATE INDEX IF NOT EXISTS idx_indoor_cricket_bookings_user ON indoor_cricket_bookings(booked_by_user_id, booking_status);
+CREATE INDEX IF NOT EXISTS idx_match_fixtures_status ON match_fixtures(match_status);
+CREATE INDEX IF NOT EXISTS idx_user_notifications_user_unread ON user_notifications(user_id, is_read);
 
 CREATE TABLE IF NOT EXISTS match_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

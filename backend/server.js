@@ -16,6 +16,8 @@ const createRatingRouter = require('./modules/RatingModule');
 const createSearchRouter = require('./modules/SearchModule');
 const { createNotificationRouter } = require('./modules/NotificationModule');
 
+const compression = require('compression');
+
 const app = express();
 const server = http.createServer(app);
 
@@ -28,6 +30,7 @@ const io = new Server(server, {
 });
 
 app.use(cors());
+app.use(compression());
 app.use(express.json());
 
 // Real-Time HTTP API Terminal Request & Developer Error Logger
@@ -122,6 +125,17 @@ app.get('/api/health', async (req, res) => {
   } catch (err) {
     res.status(500).json({ status: 'DOWN', error: err.message });
   }
+});
+
+// Global Centralized Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled Application Error:', err);
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    success: false,
+    error: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' ? { stack: err.stack } : {})
+  });
 });
 
 const PORT = process.env.PORT || 5000;

@@ -160,7 +160,7 @@ export default function AwardsAnalyticsView({ activeMatchId }) {
       </div>
 
       {/* Full Player Match Performance Metrics */}
-      <div className="glass-panel" style={{ padding: '24px' }}>
+      <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>
           Player Performance Breakdown Table
         </h3>
@@ -188,6 +188,41 @@ export default function AwardsAnalyticsView({ activeMatchId }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Gamification & Equipment Promotion Panel */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="glass-panel" style={{ padding: '20px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+          <h4 style={{ color: '#f59e0b', fontWeight: 800, fontSize: '1.05rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            👑 Tournament Loyalty Badges & Rewards Track
+          </h4>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+            Earn 100 SportsAdda Loyalty XP per match booking. Redeem for store vouchers and free floodlight hours.
+          </p>
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem' }}>🏆 Season MVP Track</div>
+              <div style={{ fontSize: '0.75rem', color: '#10b981' }}>Level 4 (480 / 500 XP)</div>
+            </div>
+            <span className="badge" style={{ background: '#f59e0b', color: '#000', fontWeight: 900 }}>REWARD READY</span>
+          </div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '20px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+          <h4 style={{ color: '#10b981', fontWeight: 800, fontSize: '1.05rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🛍️ Localized Store Equipment Promotions
+          </h4>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+            Exclusive 15% OFF discount on Ihsan Tapeball Bats & Speed Balls at partner pro-shops.
+          </p>
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem' }}>🏏 Pro-Shop Tapeball Kit</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Voucher Code: <strong>SPORTSADDA15</strong></div>
+            </div>
+            <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Claim Offer</button>
+          </div>
+        </div>
       </div>
     </div>
   );
