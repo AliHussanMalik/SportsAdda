@@ -16,7 +16,12 @@ const createRatingRouter = require('./modules/RatingModule');
 const createSearchRouter = require('./modules/SearchModule');
 const { createNotificationRouter } = require('./modules/NotificationModule');
 
-const compression = require('compression');
+let compression;
+try {
+  compression = require('compression');
+} catch (e) {
+  console.warn('ℹ️ compression module not loaded. HTTP responses will be served uncompressed.');
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -30,7 +35,9 @@ const io = new Server(server, {
 });
 
 app.use(cors());
-app.use(compression());
+if (compression) {
+  app.use(compression());
+}
 app.use(express.json());
 
 // Real-Time HTTP API Terminal Request & Developer Error Logger
