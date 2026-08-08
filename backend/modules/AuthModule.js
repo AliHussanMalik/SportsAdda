@@ -227,10 +227,33 @@ function createAuthRouter(pool) {
     });
   });
 
-  // Get Current Authenticated User Profile
+  // Get Current Authenticated User Profile with Career Performance Statistics
   router.get('/me', authenticateToken, async (req, res) => {
     try {
-      const result = await pool.query('SELECT * FROM player_profiles WHERE user_id = $1', [req.user.user_id]);
+      const result = await pool.query(
+        `SELECT p.*,
+                COALESCE(c.total_runs, 0) AS total_runs,
+                COALESCE(c.balls_faced, 0) AS balls_faced,
+                COALESCE(c.fours, 0) AS fours,
+                COALESCE(c.sixes, 0) AS sixes,
+                COALESCE(c.high_score, 0) AS high_score,
+                COALESCE(c.dismissals, 0) AS dismissals,
+                COALESCE(c.wickets_taken, 0) AS wickets_taken,
+                COALESCE(c.runs_conceded, 0) AS runs_conceded,
+                COALESCE(c.economy_rate, 0.00) AS economy_rate,
+                COALESCE(k.total_saves, 0) AS total_saves,
+                COALESCE(k.stumpings, 0) AS stumpings,
+                COALESCE((
+                  SELECT COUNT(DISTINCT match_id) 
+                  FROM cricket_batting_order 
+                  WHERE player_id = p.user_id
+                ), 0) AS total_matches
+         FROM player_profiles p
+         LEFT JOIN cricket_player_stats c ON p.user_id = c.user_id
+         LEFT JOIN keeper_stats k ON p.user_id = k.user_id
+         WHERE p.user_id = $1;`,
+        [req.user.user_id]
+      );
       if (result.rows.length === 0) {
         return res.status(404).json({ success: false, error: 'User profile not found' });
       }
@@ -240,14 +263,29 @@ function createAuthRouter(pool) {
     }
   });
 
-  // Fetch Profiles List
+  // Fetch Profiles List with Career Stats
   router.get('/profiles', async (req, res) => {
     try {
       const result = await pool.query(
-        `SELECT p.*, k.total_saves, k.clean_sheets, k.stumpings, k.penalties_saved
+        `SELECT p.*,
+                COALESCE(c.total_runs, 0) AS total_runs,
+                COALESCE(c.balls_faced, 0) AS balls_faced,
+                COALESCE(c.fours, 0) AS fours,
+                COALESCE(c.sixes, 0) AS sixes,
+                COALESCE(c.high_score, 0) AS high_score,
+                COALESCE(c.wickets_taken, 0) AS wickets_taken,
+                COALESCE(c.economy_rate, 0.00) AS economy_rate,
+                COALESCE(k.total_saves, 0) AS total_saves,
+                COALESCE(k.stumpings, 0) AS stumpings,
+                COALESCE((
+                  SELECT COUNT(DISTINCT match_id) 
+                  FROM cricket_batting_order 
+                  WHERE player_id = p.user_id
+                ), 0) AS total_matches
          FROM player_profiles p
+         LEFT JOIN cricket_player_stats c ON p.user_id = c.user_id
          LEFT JOIN keeper_stats k ON p.user_id = k.user_id
-         ORDER BY p.created_at DESC`
+         ORDER BY p.created_at DESC;`
       );
       res.json({ success: true, profiles: result.rows });
     } catch (err) {

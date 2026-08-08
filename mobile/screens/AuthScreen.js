@@ -306,6 +306,49 @@ export default function AuthScreen() {
           </View>
         </View>
 
+        {/* Mobile Player Career Performance Statistics Grid */}
+        <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: theme.accent, marginBottom: 10, textTransform: 'uppercase' }}>
+            📊 Career Statistics
+          </Text>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: theme.border }]}>
+              <Text style={[styles.statVal, { color: theme.text }]}>{user.total_matches || 0}</Text>
+              <Text style={[styles.statLbl, { color: theme.subText }]}>Matches</Text>
+            </View>
+
+            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#10b981' }]}>
+              <Text style={[styles.statVal, { color: '#10b981' }]}>{user.total_runs || 0}</Text>
+              <Text style={[styles.statLbl, { color: theme.subText }]}>Total Runs</Text>
+            </View>
+
+            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#f59e0b' }]}>
+              <Text style={[styles.statVal, { color: '#f59e0b' }]}>{user.high_score || 0}</Text>
+              <Text style={[styles.statLbl, { color: theme.subText }]}>Best Score</Text>
+            </View>
+
+            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#3b82f6' }]}>
+              <Text style={[styles.statVal, { color: '#3b82f6' }]}>
+                {user.balls_faced > 0 ? ((user.total_runs / user.balls_faced) * 100).toFixed(1) : '0.0'}
+              </Text>
+              <Text style={[styles.statLbl, { color: theme.subText }]}>Strike Rate</Text>
+            </View>
+
+            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#ef4444' }]}>
+              <Text style={[styles.statVal, { color: '#ef4444' }]}>{user.wickets_taken || 0}</Text>
+              <Text style={[styles.statLbl, { color: theme.subText }]}>Wickets</Text>
+            </View>
+
+            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#a855f7' }]}>
+              <Text style={[styles.statVal, { color: '#a855f7' }]}>
+                {user.fours || 0} / {user.sixes || 0}
+              </Text>
+              <Text style={[styles.statLbl, { color: theme.subText }]}>4s / 6s</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Self Profile Edit Form Toggle */}
         {isEditing ? (
           <View style={styles.editSection}>
@@ -441,5 +484,8 @@ const styles = StyleSheet.create({
   editSection: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
   saveBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
   cancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' },
-  readOnlyCard: { padding: 12, borderRadius: 14, borderWidth: 1, marginBottom: 10 }
+  readOnlyCard: { padding: 12, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
+  statBox: { width: '31%', padding: 10, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
+  statVal: { fontSize: 16, fontWeight: '900' },
+  statLbl: { fontSize: 10, marginTop: 2 }
 });

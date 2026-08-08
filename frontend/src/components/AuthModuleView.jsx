@@ -381,6 +381,43 @@ export default function AuthModuleView() {
             </div>
           </div>
 
+          {/* Player Career Performance Dashboard */}
+          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#10b981', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              📊 Career Performance Statistics
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fff' }}>{currentUser.total_matches || 0}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Matches Played</div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(16,185,129,0.3)' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#10b981' }}>{currentUser.total_runs || 0}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Total Runs</div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(245,158,11,0.3)' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f59e0b' }}>{currentUser.high_score || 0}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Best Score</div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(59,130,246,0.3)' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#3b82f6' }}>
+                  {currentUser.balls_faced > 0 ? ((currentUser.total_runs / currentUser.balls_faced) * 100).toFixed(1) : '0.0'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Strike Rate / RR</div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(239,68,68,0.3)' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ef4444' }}>{currentUser.wickets_taken || 0}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Wickets Taken</div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(168,85,247,0.3)' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#a855f7' }}>
+                  {currentUser.fours || 0} 4s / {currentUser.sixes || 0} 6s
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Boundaries</div>
+              </div>
+            </div>
+          </div>
+
           {editMode ? (
             <form onSubmit={handleSaveOwnProfile} style={{ marginTop: '20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
               <input
