@@ -298,35 +298,42 @@ export default function AuthModuleView() {
                     <option value="INDOOR_OWNER">🏢 Indoor Owner (Manage Arena, Pitches & Kiosk Audit)</option>
                   </select>
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Primary Sport</label>
-                    <select
-                      value={primarySport}
-                      onChange={(e) => setPrimarySport(e.target.value)}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
-                    >
-                      <option value="CRICKET">Indoor Cricket 🏏</option>
-                      <option value="FUTSAL">Futsal ⚽</option>
-                      <option value="PADEL">Padel 🎾</option>
-                    </select>
+                {accountRole === 'PLAYER' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Primary Sport</label>
+                      <select
+                        value={primarySport}
+                        onChange={(e) => setPrimarySport(e.target.value)}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
+                      >
+                        <option value="CRICKET">Indoor Cricket 🏏</option>
+                        <option value="FUTSAL">Futsal ⚽</option>
+                        <option value="PADEL">Padel 🎾</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Jersey Number</label>
+                      <input
+                        type="number"
+                        value={jerseyNumber}
+                        onChange={(e) => setJerseyNumber(e.target.value)}
+                        placeholder="e.g. 7"
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Jersey Number</label>
-                    <input
-                      type="number"
-                      value={jerseyNumber}
-                      onChange={(e) => setJerseyNumber(e.target.value)}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
-            <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: '8px', padding: '12px' }}>
-              {submitting ? 'Authenticating...' : mode === 'login' ? '🔑 Sign In to Account' : '🚀 Create Account'}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn btn-primary"
+              style={{ padding: '12px', fontSize: '1rem', fontWeight: 800, marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            >
+              {submitting ? 'Processing...' : mode === 'login' ? '🔑 Log In to SportsAdda' : '🚀 Create Account'}
             </button>
 
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '6px', fontStyle: 'italic' }}>
@@ -336,7 +343,7 @@ export default function AuthModuleView() {
         </div>
       ) : (
         /* ------------------------------------------------------------- */
-        /* If LOGGED IN: Show My Profile & Ownership Controls            */
+        /* Logged-In User Profile & Stats Header                        */
         /* ------------------------------------------------------------- */
         <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', marginBottom: '32px', border: '2px solid #10b981' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -345,7 +352,7 @@ export default function AuthModuleView() {
                 width: '60px',
                 height: '60px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+                background: currentUser.role === 'INDOOR_OWNER' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #10b981, #06b6d4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -353,14 +360,15 @@ export default function AuthModuleView() {
                 fontWeight: 800,
                 color: '#fff'
               }}>
-                #{currentUser.jersey_number || 10}
+                {currentUser.role === 'INDOOR_OWNER' ? '🏢' : `#${currentUser.jersey_number || 10}`}
               </div>
               <div>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>
                   {currentUser.display_name} <span style={{ fontSize: '0.85rem', color: '#10b981', marginLeft: '6px' }}>(Your Account)</span>
                 </h3>
                 <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', gap: '8px', marginTop: '2px' }}>
-                  <span>{currentUser.primary_sport}</span> • <span>{currentUser.preferred_role || 'Player'}</span>
+                  <span>{currentUser.role === 'INDOOR_OWNER' ? 'Indoor Arena Business Profile' : currentUser.primary_sport}</span>
+                  {currentUser.role !== 'INDOOR_OWNER' && <span>• {currentUser.preferred_role || 'Player'}</span>}
                 </div>
               </div>
             </div>
@@ -381,42 +389,68 @@ export default function AuthModuleView() {
             </div>
           </div>
 
-          {/* Player Career Performance Dashboard */}
-          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#10b981', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              📊 Career Performance Statistics
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fff' }}>{currentUser.total_matches || 0}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Matches Played</div>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(16,185,129,0.3)' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#10b981' }}>{currentUser.total_runs || 0}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Total Runs</div>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(245,158,11,0.3)' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f59e0b' }}>{currentUser.high_score || 0}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Best Score</div>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(59,130,246,0.3)' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#3b82f6' }}>
-                  {currentUser.balls_faced > 0 ? ((currentUser.total_runs / currentUser.balls_faced) * 100).toFixed(1) : '0.0'}
+          {/* Conditional Dashboard: Career Stats for Players VS Arena Summary for Indoor Owners */}
+          {currentUser.role === 'INDOOR_OWNER' ? (
+            <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f59e0b', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                🏢 Indoor Arena Management Summary
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(245,158,11,0.3)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f59e0b' }}>Active</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Venue Status</div>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Strike Rate / RR</div>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ef4444' }}>{currentUser.wickets_taken || 0}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Wickets Taken</div>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(168,85,247,0.3)' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#a855f7' }}>
-                  {currentUser.fours || 0} 4s / {currentUser.sixes || 0} 6s
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(16,185,129,0.3)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#10b981' }}>16 Slots</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Daily Pitch Grid</div>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Boundaries</div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(59,130,246,0.3)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#3b82f6' }}>Pro-Shop</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Equipment Outlets</div>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(168,85,247,0.3)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#a855f7' }}>Automated</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>QR Kiosk Check-In</div>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#10b981', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                📊 Career Performance Statistics
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fff' }}>{currentUser.total_matches || 0}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Matches Played</div>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(16,185,129,0.3)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#10b981' }}>{currentUser.total_runs || 0}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Total Runs</div>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(245,158,11,0.3)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f59e0b' }}>{currentUser.high_score || 0}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Best Score</div>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(59,130,246,0.3)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#3b82f6' }}>
+                    {currentUser.balls_faced > 0 ? ((currentUser.total_runs / currentUser.balls_faced) * 100).toFixed(1) : '0.0'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Strike Rate / RR</div>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(239,68,68,0.3)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ef4444' }}>{currentUser.wickets_taken || 0}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Wickets Taken</div>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(168,85,247,0.3)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#a855f7' }}>
+                    {currentUser.fours || 0} 4s / {currentUser.sixes || 0} 6s
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Boundaries</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {editMode ? (
             <form onSubmit={handleSaveOwnProfile} style={{ marginTop: '20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -427,13 +461,15 @@ export default function AuthModuleView() {
                 placeholder="Display Name"
                 style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff' }}
               />
-              <input
-                type="number"
-                value={editJersey}
-                onChange={(e) => setEditJersey(e.target.value)}
-                placeholder="Jersey #"
-                style={{ width: '80px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff' }}
-              />
+              {currentUser.role !== 'INDOOR_OWNER' && (
+                <input
+                  type="number"
+                  value={editJersey}
+                  onChange={(e) => setEditJersey(e.target.value)}
+                  placeholder="Jersey #"
+                  style={{ width: '80px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff' }}
+                />
+              )}
               <button type="submit" className="btn btn-primary">Save Changes</button>
               <button type="button" className="btn btn-secondary" onClick={() => setEditMode(false)}>Cancel</button>
             </form>
@@ -450,21 +486,15 @@ export default function AuthModuleView() {
       {/* ------------------------------------------------------------- */}
       {/* Registered Players Directory Privacy Logic                     */}
       {/* ------------------------------------------------------------- */}
-      {currentUser && (currentUser.role === 'PLAYER' || !currentUser.role) ? (
-        /* PRIVACY BANNER FOR REGULAR PLAYERS (Hide global directory) */
-        <div className="glass-panel" style={{ padding: '28px', textAlign: 'center', borderRadius: '16px', border: '1px dashed rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.05)' }}>
-          {/* <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            🔒 Player Account Privacy Protected
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '520px', margin: '0 auto 14px auto', lineHeight: '1.5' }}>
-            Your account credentials, pitch bookings, and profile statistics are private to your logged-in account. The global player directory is restricted from regular player views.
-          </p> */}
-          <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 700 }}>
-            🏃 Active Role: Player Account
+      {currentUser && currentUser.role !== 'ADMIN' ? (
+        /* PRIVACY BANNER FOR PLAYERS & INDOOR OWNERS (Restricted to System Admins) */
+        <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', borderRadius: '16px', border: '1px dashed rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.05)' }}>
+          <span className="badge" style={{ background: currentUser.role === 'INDOOR_OWNER' ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)', color: currentUser.role === 'INDOOR_OWNER' ? '#f59e0b' : '#10b981', fontWeight: 700 }}>
+            {currentUser.role === 'INDOOR_OWNER' ? '🏢 Active Role: Indoor Owner Venue Account' : '🏃 Active Role: Player Account'}
           </span>
         </div>
       ) : (
-        /* ADMINISTRATIVE DIRECTORY VIEW FOR INDOOR OWNER & ADMIN */
+        /* SYSTEM ADMIN DIRECTORY VIEW */
         <>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>
             👥 Registered Players Directory ({profiles.length})

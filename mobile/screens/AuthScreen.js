@@ -286,12 +286,14 @@ export default function AuthScreen() {
       {/* Logged-In User Profile Control Card */}
       <View style={[styles.myProfileCard, { backgroundColor: theme.cardBg, borderColor: theme.accent }]}>
         <View style={styles.cardHeader}>
-          <View style={[styles.avatar, { backgroundColor: theme.accent, width: 52, height: 52, borderRadius: 26 }]}>
-            <Text style={[styles.avatarText, { fontSize: 18 }]}>#{user.jersey_number || 10}</Text>
+          <View style={[styles.avatar, { backgroundColor: user.role === 'INDOOR_OWNER' ? '#f59e0b' : theme.accent, width: 52, height: 52, borderRadius: 26 }]}>
+            <Text style={[styles.avatarText, { fontSize: 18 }]}>{user.role === 'INDOOR_OWNER' ? '🏢' : `#${user.jersey_number || 10}`}</Text>
           </View>
           <View style={{ flex: 1, marginLeft: 14 }}>
             <Text style={[styles.name, { color: theme.text, fontSize: 18 }]}>{user.display_name}</Text>
-            <Text style={[styles.sportRole, { color: theme.subText }]}>{user.primary_sport} • {user.preferred_role || 'Player'}</Text>
+            <Text style={[styles.sportRole, { color: theme.subText }]}>
+              {user.role === 'INDOOR_OWNER' ? 'Indoor Arena Business Profile' : `${user.primary_sport} • ${user.preferred_role || 'Player'}`}
+            </Text>
             <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
               <View style={[styles.miniBadge, { backgroundColor: user.role === 'INDOOR_OWNER' ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)' }]}>
                 <Text style={{ color: user.role === 'INDOOR_OWNER' ? '#f59e0b' : '#10b981', fontWeight: '800', fontSize: 10 }}>
@@ -306,48 +308,73 @@ export default function AuthScreen() {
           </View>
         </View>
 
-        {/* Mobile Player Career Performance Statistics Grid */}
-        <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
-          <Text style={{ fontSize: 13, fontWeight: '800', color: theme.accent, marginBottom: 10, textTransform: 'uppercase' }}>
-            📊 Career Statistics
-          </Text>
+        {/* Mobile Performance Stats for Players VS Arena Summary for Indoor Owners */}
+        {user.role === 'INDOOR_OWNER' ? (
+          <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#f59e0b', marginBottom: 10, textTransform: 'uppercase' }}>
+              🏢 Venue Management Summary
+            </Text>
 
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-              <Text style={[styles.statVal, { color: theme.text }]}>{user.total_matches || 0}</Text>
-              <Text style={[styles.statLbl, { color: theme.subText }]}>Matches</Text>
-            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#f59e0b' }]}>
+                <Text style={[styles.statVal, { color: '#f59e0b' }]}>Active</Text>
+                <Text style={[styles.statLbl, { color: theme.subText }]}>Venue Status</Text>
+              </View>
 
-            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#10b981' }]}>
-              <Text style={[styles.statVal, { color: '#10b981' }]}>{user.total_runs || 0}</Text>
-              <Text style={[styles.statLbl, { color: theme.subText }]}>Total Runs</Text>
-            </View>
+              <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#10b981' }]}>
+                <Text style={[styles.statVal, { color: '#10b981' }]}>16 Slots</Text>
+                <Text style={[styles.statLbl, { color: theme.subText }]}>Pitch Grid</Text>
+              </View>
 
-            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#f59e0b' }]}>
-              <Text style={[styles.statVal, { color: '#f59e0b' }]}>{user.high_score || 0}</Text>
-              <Text style={[styles.statLbl, { color: theme.subText }]}>Best Score</Text>
-            </View>
-
-            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#3b82f6' }]}>
-              <Text style={[styles.statVal, { color: '#3b82f6' }]}>
-                {user.balls_faced > 0 ? ((user.total_runs / user.balls_faced) * 100).toFixed(1) : '0.0'}
-              </Text>
-              <Text style={[styles.statLbl, { color: theme.subText }]}>Strike Rate</Text>
-            </View>
-
-            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#ef4444' }]}>
-              <Text style={[styles.statVal, { color: '#ef4444' }]}>{user.wickets_taken || 0}</Text>
-              <Text style={[styles.statLbl, { color: theme.subText }]}>Wickets</Text>
-            </View>
-
-            <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#a855f7' }]}>
-              <Text style={[styles.statVal, { color: '#a855f7' }]}>
-                {user.fours || 0} / {user.sixes || 0}
-              </Text>
-              <Text style={[styles.statLbl, { color: theme.subText }]}>4s / 6s</Text>
+              <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#3b82f6' }]}>
+                <Text style={[styles.statVal, { color: '#3b82f6' }]}>Pro-Shop</Text>
+                <Text style={[styles.statLbl, { color: theme.subText }]}>Store Outlets</Text>
+              </View>
             </View>
           </View>
-        </View>
+        ) : (
+          <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: theme.accent, marginBottom: 10, textTransform: 'uppercase' }}>
+              📊 Career Statistics
+            </Text>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: theme.border }]}>
+                <Text style={[styles.statVal, { color: theme.text }]}>{user.total_matches || 0}</Text>
+                <Text style={[styles.statLbl, { color: theme.subText }]}>Matches</Text>
+              </View>
+
+              <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#10b981' }]}>
+                <Text style={[styles.statVal, { color: '#10b981' }]}>{user.total_runs || 0}</Text>
+                <Text style={[styles.statLbl, { color: theme.subText }]}>Total Runs</Text>
+              </View>
+
+              <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#f59e0b' }]}>
+                <Text style={[styles.statVal, { color: '#f59e0b' }]}>{user.high_score || 0}</Text>
+                <Text style={[styles.statLbl, { color: theme.subText }]}>Best Score</Text>
+              </View>
+
+              <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#3b82f6' }]}>
+                <Text style={[styles.statVal, { color: '#3b82f6' }]}>
+                  {user.balls_faced > 0 ? ((user.total_runs / user.balls_faced) * 100).toFixed(1) : '0.0'}
+                </Text>
+                <Text style={[styles.statLbl, { color: theme.subText }]}>Strike Rate</Text>
+              </View>
+
+              <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#ef4444' }]}>
+                <Text style={[styles.statVal, { color: '#ef4444' }]}>{user.wickets_taken || 0}</Text>
+                <Text style={[styles.statLbl, { color: theme.subText }]}>Wickets</Text>
+              </View>
+
+              <View style={[styles.statBox, { backgroundColor: theme.bg, borderColor: '#a855f7' }]}>
+                <Text style={[styles.statVal, { color: '#a855f7' }]}>
+                  {user.fours || 0} / {user.sixes || 0}
+                </Text>
+                <Text style={[styles.statLbl, { color: theme.subText }]}>4s / 6s</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Self Profile Edit Form Toggle */}
         {isEditing ? (
@@ -358,13 +385,17 @@ export default function AuthScreen() {
               value={editName}
               onChangeText={setEditName}
             />
-            <Text style={[styles.formLabel, { color: theme.subText, marginTop: 8 }]}>Jersey Number</Text>
-            <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.bg }]}
-              value={editJersey}
-              onChangeText={setEditJersey}
-              keyboardType="numeric"
-            />
+            {user.role !== 'INDOOR_OWNER' && (
+              <>
+                <Text style={[styles.formLabel, { color: theme.subText, marginTop: 8 }]}>Jersey Number</Text>
+                <TextInput
+                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.bg }]}
+                  value={editJersey}
+                  onChangeText={setEditJersey}
+                  keyboardType="numeric"
+                />
+              </>
+            )}
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
               <TouchableOpacity
                 style={[styles.saveBtn, { backgroundColor: theme.accent }]}
@@ -394,20 +425,17 @@ export default function AuthScreen() {
         )}
       </View>
 
-      {/* Directory Logic: Show Privacy Card for Regular Players, Roster for Owners */}
-      {user.role === 'PLAYER' || !user.role ? (
-        <View style={[styles.formCard, { backgroundColor: theme.cardBg, borderColor: 'rgba(16,185,129,0.4)', padding: 20, alignItems: 'center', marginTop: 16 }]}>
-          {/* <Text style={{ fontSize: 15, fontWeight: '800', color: theme.accent, marginBottom: 6 }}>
-            🔒 Player Account Privacy Protected
+      {/* Directory Logic: Restrict global player directory from Players and Owners (Admin Only) */}
+      {user.role !== 'ADMIN' ? (
+        <View style={[styles.formCard, { backgroundColor: theme.cardBg, borderColor: user.role === 'INDOOR_OWNER' ? 'rgba(245,158,11,0.4)' : 'rgba(16,185,129,0.4)', padding: 14, alignItems: 'center', marginTop: 16 }]}>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: user.role === 'INDOOR_OWNER' ? '#f59e0b' : theme.accent }}>
+            {user.role === 'INDOOR_OWNER' ? '🏢 Active Role: Indoor Owner Account' : '🏃 Active Role: Player Account'}
           </Text>
-          <Text style={{ fontSize: 12, color: theme.subText, textAlign: 'center', lineHeight: 18 }}>
-            Your account credentials, match bookings, and statistics are private to your logged-in account. The global player directory is restricted from regular player views.
-          </Text> */}
         </View>
       ) : (
         <>
           <Text style={[styles.sectionHeading, { color: theme.text, marginTop: 24 }]}>
-            👥 Arena Roster Directory ({profiles.length})
+            👥 System Roster Directory ({profiles.length})
           </Text>
           <Text style={[styles.subtitle, { color: theme.subText }]}>
             (Indoor Owner View for Arena Roster Management)

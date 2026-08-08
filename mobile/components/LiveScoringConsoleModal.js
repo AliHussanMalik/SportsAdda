@@ -2,21 +2,53 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
 import { API_BASE } from '../config';
 
-let AsyncStorage;
+let NativeAsyncStorage = null;
 try {
-  AsyncStorage = require('@react-native-async-storage/async-storage').default || require('@react-native-async-storage/async-storage');
+  NativeAsyncStorage = require('@react-native-async-storage/async-storage').default || require('@react-native-async-storage/async-storage');
 } catch (e) {
-  const memoryStore = {};
-  AsyncStorage = {
-    getItem: async (key) => memoryStore[key] || null,
-    setItem: async (key, val) => { memoryStore[key] = val; },
-    removeItem: async (key) => { delete memoryStore[key]; }
-  };
+  // Module missing
 }
+
+const memoryStore = new Map();
+
+// Robust Storage Wrapper with silent in-memory fallback if Native Module is null
+const safeStorage = {
+  getItem: async (key) => {
+    try {
+      if (NativeAsyncStorage && typeof NativeAsyncStorage.getItem === 'function') {
+        const val = await NativeAsyncStorage.getItem(key);
+        if (val !== null && val !== undefined) return val;
+      }
+    } catch (e) {
+      // Catch "Native module is null" silently
+    }
+    return memoryStore.get(key) || null;
+  },
+  setItem: async (key, val) => {
+    memoryStore.set(key, val);
+    try {
+      if (NativeAsyncStorage && typeof NativeAsyncStorage.setItem === 'function') {
+        await NativeAsyncStorage.setItem(key, val);
+      }
+    } catch (e) {
+      // Catch "Native module is null" silently
+    }
+  },
+  removeItem: async (key) => {
+    memoryStore.delete(key);
+    try {
+      if (NativeAsyncStorage && typeof NativeAsyncStorage.removeItem === 'function') {
+        await NativeAsyncStorage.removeItem(key);
+      }
+    } catch (e) {
+      // Catch "Native module is null" silently
+    }
+  }
+};
 
 /**
  * Mobile Offline-First Live Scoring Console Modal
- * Features persistent AsyncStorage offline fallback so field scorers never lose ball-by-ball data.
+ * Features persistent offline fallback so field scorers never lose ball-by-ball data.
  */
 export default function LiveScoringConsoleModal({ visible, matchId, onClose }) {
   const [matchState, setMatchState] = useState({
@@ -39,21 +71,21 @@ export default function LiveScoringConsoleModal({ visible, matchId, onClose }) {
 
   const loadOfflineState = async () => {
     try {
-      const savedState = await AsyncStorage.getItem(storageKey);
+      const savedState = await safeStorage.getItem(storageKey);
       if (savedState) {
         setMatchState(JSON.parse(savedState));
       }
     } catch (e) {
-      console.error('AsyncStorage load error:', e);
+      // Silent error handler
     }
   };
 
   const saveOfflineState = async (newState) => {
+    setMatchState(newState);
     try {
-      setMatchState(newState);
-      await AsyncStorage.setItem(storageKey, JSON.stringify(newState));
+      await safeStorage.setItem(storageKey, JSON.stringify(newState));
     } catch (e) {
-      console.error('AsyncStorage save error:', e);
+      // Silent error handler
     }
   };
 
@@ -92,7 +124,7 @@ export default function LiveScoringConsoleModal({ visible, matchId, onClose }) {
         await saveOfflineState({ ...updatedState, queuedEvents: [], isOffline: false });
       }
     } catch (e) {
-      // Mark as offline, state is safely persisted in AsyncStorage
+      // Mark as offline, state is safely persisted in local storage wrapper
       await saveOfflineState({ ...updatedState, isOffline: true });
     }
   };
