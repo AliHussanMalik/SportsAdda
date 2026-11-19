@@ -93,7 +93,9 @@ ADD COLUMN IF NOT EXISTS has_canteen BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS has_prayer_area BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS operating_days JSONB DEFAULT '["MON","TUE","WED","THU","FRI","SAT","SUN"]'::jsonb,
 ADD COLUMN IF NOT EXISTS opening_time TIME DEFAULT '08:00:00',
-ADD COLUMN IF NOT EXISTS closing_time TIME DEFAULT '24:00:00';
+ADD COLUMN IF NOT EXISTS closing_time TIME DEFAULT '24:00:00',
+ADD COLUMN IF NOT EXISTS image_url TEXT,
+ADD COLUMN IF NOT EXISTS gallery_photos JSONB DEFAULT '[]'::jsonb;
 
 -- Multi-Store Ownership for Indoor Owners
 CREATE TABLE IF NOT EXISTS owner_stores (
@@ -475,26 +477,50 @@ async function initDB() {
       `);
 
       // 4. Arenas & Courts
+      // 4. Arenas & Courts (Comprehensive Pakistani Indoor & Specialized Sports Facilities)
       const arenaRes = await client.query(`
-        INSERT INTO indoor_arenas (name, address, latitude, longitude, avg_rating, total_reviews, has_ac, has_parking, has_cameras, has_changing_room, has_canteen, has_prayer_area)
-        VALUES ('Velocity Sports Complex', 'DHA Phase 5 Commercial, Sector E', 31.4720, 74.4080, 4.8, 15, true, true, true, true, true, true)
-        RETURNING id;
+        INSERT INTO indoor_arenas (name, address, city, hourly_rate, avg_rating, total_reviews, has_ac, has_parking, has_cameras, has_changing_room, has_canteen, has_prayer_area, facilities)
+        VALUES 
+        ('Velocity Sports Complex', 'DHA Phase 5 Commercial, Sector E', 'Lahore', 2500.00, 4.8, 15, true, true, true, true, true, true, '["Turf", "AC Lounge", "Bowling Machine", "Floodlights"]'::jsonb),
+        ('Lahore Garrison Shooting Gallery', 'DHA Phase 8, Sector C, Near Airport', 'Lahore', 4500.00, 4.9, 32, true, true, true, true, true, true, '["Air Pistol 10m Lane", "25m Firearm Range", "Laser Target System", "Safety Instructor"]'::jsonb),
+        ('Gun & Country Club Islamabad', 'Shakarparian Road, Near Sports Complex', 'Islamabad', 5000.00, 4.9, 48, true, true, true, true, true, true, '["Olympic Trap Shooting", "25m Pistol Bay", "Gun Armory", "VIP Lounge"]'::jsonb),
+        ('Lahore Archery Club', 'Main Boulevard, Gulberg III', 'Lahore', 2200.00, 4.7, 19, true, true, true, true, false, true, '["Recurve Bows 🏹", "Compound Bow Lane", "18m Indoor Target", "Safety Gear Kit"]'::jsonb),
+        ('Garrison Equestrian & Riding Stables', 'Sarfraz Rafiqui Road, Cantt', 'Lahore', 3500.00, 4.9, 27, false, true, true, true, true, true, '["Covered Riding Ring 🐎", "Show Jumping Course", "Expert Trainer", "Horse Rental Stables"]'::jsonb),
+        ('Smash Padel Club Lahore', 'Sector Z, DHA Phase 3', 'Lahore', 3800.00, 4.8, 22, true, true, true, true, true, true, '["Panoramic Glass Court 🎾", "Mondo Turf", "LED Floodlights", "Padel Pro Shop"]'::jsonb),
+        ('DHA Badminton & Sports Complex', 'Sector R, Phase 2, DHA', 'Lahore', 1800.00, 4.6, 14, true, true, true, true, true, true, '["Teak Hardwood Court 🏸", "Yonex Synthetic Mats", "AC Air Flow"]'::jsonb),
+        ('Elite Hoops Basketball Dome', 'Cantt Sports Stadium, Fortress', 'Lahore', 3200.00, 4.8, 18, true, true, true, true, true, true, '["Hardwood Maple Court 🏀", "Glass Backboards", "Shot Clocks"]'::jsonb)
+        RETURNING id, name;
       `);
-      const arena_id = arenaRes.rows[0].id;
+      
+      const velocityId = arenaRes.rows.find(r => r.name.includes('Velocity'))?.id || arenaRes.rows[0].id;
+      const shootingId = arenaRes.rows.find(r => r.name.includes('Garrison Shooting'))?.id || arenaRes.rows[0].id;
+      const archeryId = arenaRes.rows.find(r => r.name.includes('Archery'))?.id || arenaRes.rows[0].id;
+      const ridingId = arenaRes.rows.find(r => r.name.includes('Equestrian'))?.id || arenaRes.rows[0].id;
+      const padelId = arenaRes.rows.find(r => r.name.includes('Padel'))?.id || arenaRes.rows[0].id;
+      const badmintonId = arenaRes.rows.find(r => r.name.includes('Badminton'))?.id || arenaRes.rows[0].id;
+      const basketballId = arenaRes.rows.find(r => r.name.includes('Basketball'))?.id || arenaRes.rows[0].id;
 
+      // Seed Specialized Sport Courts & Ranges
       const c1 = await client.query(`
         INSERT INTO arena_courts (arena_id, court_name, sport_type, hourly_rate)
-        VALUES ('${arena_id}', 'Turf Pitch Alpha', 'FUTSAL', 45.00)
+        VALUES 
+        ('${velocityId}', 'Turf Pitch Alpha (Futsal)', 'FUTSAL', 45.00),
+        ('${velocityId}', 'Indoor Box Cricket pitch 1', 'CRICKET', 50.00),
+        ('${shootingId}', 'Tactical Shooting Lane 1 & 2', 'SHOOTING', 75.00),
+        ('${archeryId}', 'Indoor Archery Target Range A', 'ARCHERY', 35.00),
+        ('${ridingId}', 'Main Equestrian Riding Arena', 'HORSE_RIDING', 60.00),
+        ('${padelId}', 'Padel Glass Court 1', 'PADEL', 55.00),
+        ('${badmintonId}', 'Badminton Court 1 & 2', 'BADMINTON', 25.00),
+        ('${basketballId}', 'Main Basketball Hardwood Court', 'BASKETBALL', 45.00)
         RETURNING id;
       `);
       const court1_id = c1.rows[0].id;
 
-      const c2 = await client.query(`
-        INSERT INTO arena_courts (arena_id, court_name, sport_type, hourly_rate)
-        VALUES ('${arena_id}', 'Indoor Box Cricket pitch 1', 'CRICKET', 50.00)
-        RETURNING id;
+      // Seed Indoor Cricket Pitch
+      await client.query(`
+        INSERT INTO indoor_cricket_pitches (arena_id, pitch_name, pitch_type, length_yards, has_bowling_machine, hourly_rate, peak_hourly_rate, bowling_machine_fee)
+        VALUES ('${velocityId}', 'Velocity Premium Net 1', 'TAPE_BALL', 22, true, 2500.00, 3500.00, 500.00);
       `);
-      const court2_id = c2.rows[0].id;
 
       // Court booking
       const bookRes = await client.query(`

@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, QrCode, CheckCircle, Zap, ShieldAlert } from 'lucide-react';
+import badmintonImg from '../assets/indoors/badminton.png';
+import futsalImg from '../assets/indoors/futsal.png';
+import basketballImg from '../assets/indoors/basketball.png';
+import cricketImg from '../assets/indoors/cricket.png';
+
+const indoorImageMap = {
+  BADMINTON: badmintonImg,
+  FUTSAL: futsalImg,
+  BASKETBALL: basketballImg,
+  CRICKET: cricketImg
+};
 
 export default function BookingModuleView() {
   const [arenas, setArenas] = useState([]);
@@ -1140,6 +1151,8 @@ export default function BookingModuleView() {
               </div>
             )}
           </div>
+        </>
+      )}
         </div>
       )}
 

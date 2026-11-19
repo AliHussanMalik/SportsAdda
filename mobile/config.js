@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 /**
- * Dynamically resolves the API Base URL for SportsAdda Mobile App.
+ * Dynamically resolves the API Base URL for Apex Athletics Mobile App.
  * - If using Expo Tunnel (--tunnel): uses public API tunnel (https://sportsadda-api-v1.loca.lt/api)
  *   so the mobile app can reach backend from any Wi-Fi, 4G/5G, or isolated router.
  * - If in Android Emulator: uses 10.0.2.2:5000

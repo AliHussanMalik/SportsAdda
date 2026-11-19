@@ -5,32 +5,42 @@ const ThemeContext = createContext();
 
 export const DARK_THEME = {
   mode: 'dark',
-  bg: '#090d16',
-  cardBg: '#111827',
-  text: '#ffffff',
-  subText: '#9ca3af',
-  border: 'rgba(255, 255, 255, 0.08)',
-  accent: '#10b981',
-  headerBg: '#0d1322',
-  navBg: '#111827',
-  badgeBg: 'rgba(16, 185, 129, 0.15)',
-  inputBg: '#111827',
+  bg: '#0b0f19',
+  surface: '#131b2e',
+  surfaceLow: '#0f172a',
+  surfaceHigh: '#1e293b',
+  cardBg: '#131b2e',
+  text: '#f8fafc',
+  subText: '#94a3b8',
+  border: 'rgba(255, 255, 255, 0.1)',
+  primary: '#0052ff',
+  primaryDark: '#003ec7',
+  accent: '#0052ff',
+  headerBg: '#0f172a',
+  navBg: '#131b2e',
+  badgeBg: 'rgba(0, 82, 255, 0.18)',
+  inputBg: '#1e293b',
   inputText: '#ffffff'
 };
 
 export const LIGHT_THEME = {
   mode: 'light',
-  bg: '#f3f4f6',
+  bg: '#faf8ff',
+  surface: '#ffffff',
+  surfaceLow: '#f2f3ff',
+  surfaceHigh: '#e2e7ff',
   cardBg: '#ffffff',
-  text: '#111827',
-  subText: '#4b5563',
-  border: 'rgba(0, 0, 0, 0.08)',
-  accent: '#059669',
+  text: '#131b2e',
+  subText: '#505f76',
+  border: 'rgba(19, 27, 46, 0.1)',
+  primary: '#0052ff',
+  primaryDark: '#003ec7',
+  accent: '#0052ff',
   headerBg: '#ffffff',
   navBg: '#ffffff',
-  badgeBg: 'rgba(5, 150, 105, 0.12)',
+  badgeBg: 'rgba(0, 82, 255, 0.12)',
   inputBg: '#ffffff',
-  inputText: '#111827'
+  inputText: '#131b2e'
 };
 
 export function ThemeProvider({ children }) {
@@ -38,7 +48,6 @@ export function ThemeProvider({ children }) {
   const [systemScheme, setSystemScheme] = useState(Appearance.getColorScheme() || hookColorScheme || 'light');
   const [themeMode, setThemeMode] = useState('system'); // 'dark' | 'light' | 'system'
 
-  // Listen to OS System Theme changes dynamically
   useEffect(() => {
     const current = Appearance.getColorScheme() || hookColorScheme || 'light';
     setSystemScheme(current);
@@ -52,7 +61,6 @@ export function ThemeProvider({ children }) {
     return () => subscription.remove();
   }, [hookColorScheme]);
 
-  // Determine active theme
   const activeScheme = themeMode === 'system' ? systemScheme : themeMode;
   const isDark = activeScheme === 'dark';
   const theme = isDark ? DARK_THEME : LIGHT_THEME;
@@ -62,7 +70,7 @@ export function ThemeProvider({ children }) {
       const activeOsMode = (systemScheme || 'light').toUpperCase();
       Alert.alert(
         '📱 System Display Preference',
-        `SportsAdda theme has been set to sync with your device OS settings (${activeOsMode} MODE ACTIVE).`,
+        `Apex Athletics theme has been set to sync with your device OS settings (${activeOsMode} MODE ACTIVE).`,
         [{ text: 'OK' }]
       );
     }

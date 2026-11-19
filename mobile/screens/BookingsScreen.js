@@ -1,682 +1,328 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  TextInput,
-  Linking
+  Modal,
+  Image
 } from 'react-native';
-import { API_BASE } from '../config';
 import { useTheme } from '../context/ThemeContext';
 
-// Major Pakistan Cities with Coordinates for Distance Calculation
-const PAKISTAN_CITIES = [
-  { name: 'Lahore (DHA/Gulberg)', lat: 31.4720, lng: 74.4080 },
-  { name: 'Karachi (Clifton/DHA)', lat: 24.8607, lng: 67.0011 },
-  { name: 'Islamabad (F-7/G-11)', lat: 33.6844, lng: 73.0479 },
-  { name: 'Rawalpindi (Bahria Town)', lat: 33.5651, lng: 73.0169 },
-  { name: 'Faisalabad', lat: 31.4504, lng: 73.1350 },
-  { name: 'Multan', lat: 30.1575, lng: 71.5249 },
-  { name: 'Peshawar', lat: 34.0151, lng: 71.5249 }
-];
+import { API_BASE } from '../config';
 
-export default function BookingsScreen() {
+export default function BookingsScreen({ onNavigate }) {
   const { theme } = useTheme();
+  const [activeTab, setActiveTab] = useState('upcoming');
+  const [selectedPass, setSelectedPass] = useState(null);
+  const [dbBookings, setDbBookings] = useState([]);
 
-  const [arenas, setArenas] = useState([]);
-  const [selectedCourt, setSelectedCourt] = useState(null);
-  const [slots, setSlots] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // View Mode: 'BOOKING', 'EXPLORE_ALL', or 'OWNER_DASHBOARD'
-  const [viewMode, setViewMode] = useState('BOOKING');
-  const [roleMode, setRoleMode] = useState('PLAYER'); // 'PLAYER' or 'OWNER'
-
-  // Owner Arena & Multi-Store Forms State
-  const [newArenaName, setNewArenaName] = useState('');
-  const [newArenaAddress, setNewArenaAddress] = useState('');
-  const [newArenaRate, setNewArenaRate] = useState('2500');
-  const [newStoreName, setNewStoreName] = useState('');
-  const [newStoreAddress, setNewStoreAddress] = useState('');
-  const [newStorePhone, setNewStorePhone] = useState('');
-
-  // Location & Search State
-  const [selectedCity, setSelectedCity] = useState(PAKISTAN_CITIES[0]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSport, setSelectedSport] = useState('ALL');
-  const [osmResults, setOsmResults] = useState([]);
-  const [searchingOsm, setSearchingOsm] = useState(false);
-
-  // Haversine Distance Formula (calculates distance in km)
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    if (!lat1 || !lon1 || !lat2 || !lon2) return '1.5';
-    const R = 6371;
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return (R * c).toFixed(1);
-  };
-
-  // Launch Directions in Google Maps
-  const openGoogleMapsDirections = (lat, lng, name) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodeURIComponent(name)}`;
-    Linking.openURL(url).catch(() => {
-      Alert.alert('Error', 'Could not open Google Maps app.');
-    });
-  };
-
-  const fetchArenas = async () => {
-    setLoading(true);
-    setError(null);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    try {
-      const res = await fetch(`${API_BASE}/bookings/arenas`, {
-        signal: controller.signal,
-        headers: { 'Bypass-Tunnel-Reminder': 'true' }
-      });
-      clearTimeout(timeoutId);
-      const data = await res.json();
-      if (data.success && data.arenas.length > 0) {
-        setArenas(data.arenas);
-        if (data.arenas[0].courts.length > 0) {
-          setSelectedCourt(data.arenas[0].courts[0]);
+  React.useEffect(() => {
+    async function loadBookings() {
+      try {
+        const res = await fetch(`${API_BASE}/bookings/customer/cricket-bookings?user_id=11111111-1111-1111-1111-111111111111`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.bookings)) {
+          setDbBookings(data.bookings);
         }
-      } else {
-        setError('No registered indoor venues found');
+      } catch (err) {
+        console.warn('Mobile API bookings fetch error:', err);
       }
-    } catch (e) {
-      clearTimeout(timeoutId);
-      console.error('BookingsScreen fetch error:', e);
-      setError(e.name === 'AbortError' ? 'Connection timed out. Check backend server.' : 'Network request failed');
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const fetchSlots = async () => {
-    if (!selectedCourt) return;
-    try {
-      const res = await fetch(`${API_BASE}/bookings/slots?court_id=${selectedCourt.id}`);
-      const data = await res.json();
-      if (data.success) setSlots(data.slots);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleRegisterArena = async () => {
-    if (!newArenaName || !newArenaAddress) {
-      Alert.alert('Validation Error', 'Arena Name and Address are required');
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE}/bookings/arenas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
-        body: JSON.stringify({
-          name: newArenaName,
-          address: newArenaAddress,
-          city: selectedCity.name.split(' ')[0],
-          hourly_rate: parseFloat(newArenaRate) || 2500,
-          facilities: ['Artificial Turf', 'AC Lounge', 'Night Floodlights', 'Changing Rooms']
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        Alert.alert('Success 🚀', 'Indoor Arena & Facilities registered!');
-        setNewArenaName('');
-        setNewArenaAddress('');
-        fetchArenas();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleCreateStore = async () => {
-    if (!newStoreName || !newStoreAddress) {
-      Alert.alert('Validation Error', 'Store Name and Location Address are required');
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE}/finance/stores`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
-        body: JSON.stringify({
-          owner_id: 'owner-uuid-101',
-          store_name: newStoreName,
-          store_address: newStoreAddress,
-          contact_phone: newStorePhone,
-          store_type: 'EQUIPMENT_PRO_SHOP'
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        Alert.alert('Success 🏪', 'Equipment Pro-Shop registered under profile!');
-        setNewStoreName('');
-        setNewStoreAddress('');
-        setNewStorePhone('');
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const searchOsmPakistan = async (query, city = selectedCity.name) => {
-    setSearchingOsm(true);
-    try {
-      const searchTerm = query ? `${query} sports center Pakistan` : `indoor sports arena ${city} Pakistan`;
-      const q = encodeURIComponent(searchTerm);
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=6`, {
-        headers: { 'User-Agent': 'SportsAddaApp/1.0' }
-      });
-      const data = await res.json();
-      setOsmResults(data);
-    } catch (e) {
-      console.error('OSM Search error:', e);
-    } finally {
-      setSearchingOsm(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchArenas();
-    searchOsmPakistan('', selectedCity.name);
+    loadBookings();
   }, []);
 
-  useEffect(() => {
-    fetchSlots();
-  }, [selectedCourt]);
-
-  const handleBookSlot = async (slot) => {
-    if (slot.isBooked || !selectedCourt) return;
-    try {
-      const res = await fetch(`${API_BASE}/bookings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          court_id: selectedCourt.id,
-          booked_by_user_id: '00000000-0000-0000-0000-000000000000',
-          start_time: slot.startTime,
-          end_time: slot.endTime,
-          payment_status: 'CONFIRMED'
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        Alert.alert('Booking Confirmed! 🇵🇰', `QR Check-In Payload:\n${data.booking.id}`);
-        fetchSlots();
-      }
-    } catch (e) {
-      console.error(e);
+  const defaultBookings = [
+    {
+      id: 'BK-TENNIS-01',
+      title: 'Pioneer Tennis Courts',
+      sub: 'Court 4, North Wing',
+      status: 'CONFIRMED',
+      statusColor: '#0052ff',
+      dateTime: 'Oct 24, 2026 • 18:30 - 20:00',
+      icon: '🎾',
+      qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=APEX-PIONEER-COURT4-OCT24'
+    },
+    {
+      id: 'BK-AQUA-02',
+      title: 'AquaFit Center',
+      sub: 'Lane 2, Indoor Pool',
+      status: 'UPCOMING',
+      statusColor: '#00c6ff',
+      dateTime: 'Oct 28, 2026 • 09:00 - 10:00',
+      icon: '🏊',
+      qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=APEX-AQUAFIT-LANE2-OCT28'
     }
-  };
+  ];
 
-  const allCourts = arenas.flatMap((a) =>
-    a.courts.map((c) => ({
-      ...c,
-      arenaName: a.name,
-      arenaAddress: a.address,
-      latitude: a.latitude || selectedCity.lat,
-      longitude: a.longitude || selectedCity.lng,
-      isRegistered: true
-    }))
-  );
-
-  const filteredCourts = allCourts.filter((c) => {
-    const matchesQuery =
-      c.court_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.arenaName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.arenaAddress.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSport = selectedSport === 'ALL' || c.sport_type === selectedSport;
-    return matchesQuery && matchesSport;
-  });
+  const bookingsList = dbBookings.length > 0
+    ? dbBookings.map((b) => ({
+        id: b.booking_id || b.id,
+        title: b.pitch_name || b.arena_name || 'Indoor Sports Arena',
+        sub: `Slot Date: ${b.slot_date ? new Date(b.slot_date).toLocaleDateString() : 'Active'}`,
+        status: (b.booking_status || 'CONFIRMED').toUpperCase(),
+        statusColor: '#0052ff',
+        dateTime: `${b.start_time || '04:00 PM'} - ${b.end_time || '05:00 PM'}`,
+        icon: '🏏',
+        qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=APEX-${b.booking_id || 'PASS'}`
+      }))
+    : defaultBookings;
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.bg }]} contentContainerStyle={{ padding: 16 }}>
-      {/* Title & Mode Switcher */}
-      <Text style={[styles.title, { color: theme.text }]}>🏟️ Pakistan Venues & Turfs</Text>
-      <Text style={[styles.subtitle, { color: theme.subText }]}>Book registered indoor courts or explore all grounds on Google Maps</Text>
-
-      {/* Mode Switcher Tabs */}
-      <View style={[styles.modeToggleRow, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-        <TouchableOpacity
-          style={[styles.modeTab, viewMode === 'BOOKING' && { backgroundColor: theme.accent }]}
-          onPress={() => setViewMode('BOOKING')}
-        >
-          <Text style={[styles.modeTabText, { color: theme.subText }, viewMode === 'BOOKING' && { color: '#000', fontWeight: '800' }]}>
-            📅 Book Courts
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.modeTab, viewMode === 'OWNER_DASHBOARD' && { backgroundColor: theme.accent }]}
-          onPress={() => setViewMode('OWNER_DASHBOARD')}
-        >
-          <Text style={[styles.modeTabText, { color: theme.subText }, viewMode === 'OWNER_DASHBOARD' && { color: '#000', fontWeight: '800' }]}>
-            🏢 Indoor Owner
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.modeTab, viewMode === 'EXPLORE_ALL' && { backgroundColor: theme.accent }]}
-          onPress={() => setViewMode('EXPLORE_ALL')}
-        >
-          <Text style={[styles.modeTabText, { color: theme.subText }, viewMode === 'EXPLORE_ALL' && { color: '#000', fontWeight: '800' }]}>
-            🗺️ MAP Grounds
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {viewMode === 'OWNER_DASHBOARD' && (
-        <View style={{ marginBottom: 20 }}>
-          {/* Indoor Venue & Facilities Form */}
-          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border, padding: 16, marginBottom: 16 }]}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text, marginBottom: 8 }}>
-              🏟️ Register Indoor Arena & Facilities
-            </Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
-              placeholder="Arena Name (e.g. Velocity Sports Complex)"
-              placeholderTextColor={theme.subText}
-              value={newArenaName}
-              onChangeText={setNewArenaName}
-            />
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
-              placeholder="Location Address"
-              placeholderTextColor={theme.subText}
-              value={newArenaAddress}
-              onChangeText={setNewArenaAddress}
-            />
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 12 }]}
-              placeholder="Hourly Rate PKR (e.g. 2500)"
-              placeholderTextColor={theme.subText}
-              keyboardType="numeric"
-              value={newArenaRate}
-              onChangeText={setNewArenaRate}
-            />
-            <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: theme.accent }]} onPress={handleRegisterArena}>
-              <Text style={{ color: '#000', fontWeight: '800', textAlign: 'center' }}>🚀 Register Arena & Facilities</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Multi-Store Ownership Form */}
-          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border, padding: 16 }]}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text, marginBottom: 8 }}>
-              🏪 Multi-Store Ownership (Pro-Shop Branch)
-            </Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
-              placeholder="Store Name (e.g. SportsAdda DHA Pro Shop)"
-              placeholderTextColor={theme.subText}
-              value={newStoreName}
-              onChangeText={setNewStoreName}
-            />
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
-              placeholder="Store Branch Location"
-              placeholderTextColor={theme.subText}
-              value={newStoreAddress}
-              onChangeText={setNewStoreAddress}
-            />
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.bg, color: theme.text, borderColor: theme.border, marginBottom: 12 }]}
-              placeholder="Contact Phone Number"
-              placeholderTextColor={theme.subText}
-              value={newStorePhone}
-              onChangeText={setNewStorePhone}
-            />
-            <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#8b5cf6' }]} onPress={handleCreateStore}>
-              <Text style={{ color: '#fff', fontWeight: '800', textAlign: 'center' }}>➕ Register Store Branch</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* City Selector */}
-      <Text style={[styles.sectionHeader, { color: theme.text }]}>Select Region in Pakistan:</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-        {PAKISTAN_CITIES.map((c) => (
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      {/* Segmented Tab Switcher */}
+      <View style={styles.tabContainer}>
+        <View style={[styles.tabBar, { backgroundColor: theme.surfaceLow }]}>
           <TouchableOpacity
-            key={c.name}
             style={[
-              styles.cityChip,
-              { backgroundColor: theme.cardBg, borderColor: theme.border },
-              selectedCity.name === c.name && { backgroundColor: theme.badgeBg, borderColor: theme.accent }
+              styles.tabBtn,
+              activeTab === 'upcoming' && { backgroundColor: theme.primary }
             ]}
-            onPress={() => {
-              setSelectedCity(c);
-              searchOsmPakistan(searchQuery, c.name);
-            }}
+            onPress={() => setActiveTab('upcoming')}
           >
-            <Text style={[styles.cityChipText, { color: theme.subText }, selectedCity.name === c.name && { color: theme.accent, fontWeight: '800' }]}>
-              📍 {c.name}
+            <Text style={[styles.tabText, { color: activeTab === 'upcoming' ? '#ffffff' : theme.subText }]}>
+              Upcoming
             </Text>
           </TouchableOpacity>
-        ))}
+
+          <TouchableOpacity
+            style={[
+              styles.tabBtn,
+              activeTab === 'past' && { backgroundColor: theme.primary }
+            ]}
+            onPress={() => setActiveTab('past')}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'past' ? '#ffffff' : theme.subText }]}>
+              Past
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Bookings List */}
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
+        {activeTab === 'upcoming' ? (
+          bookingsList.map((item) => (
+            <View
+              key={item.id}
+              style={[styles.bookingCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            >
+              <View style={{ flexDirection: 'row', justify: 'space-between', alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', flex: 1 }}>
+                  <View style={[styles.iconWrapper, { backgroundColor: theme.badgeBg }]}>
+                    <Text style={{ fontSize: 20 }}>{item.icon}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title}</Text>
+                    <Text style={[styles.cardSub, { color: theme.subText }]}>{item.sub}</Text>
+                  </View>
+                </View>
+
+                <View style={[styles.statusTag, { backgroundColor: theme.badgeBg }]}>
+                  <Text style={[styles.statusText, { color: theme.primary }]}>{item.status}</Text>
+                </View>
+              </View>
+
+              <View style={[styles.dateRow, { backgroundColor: theme.surfaceLow }]}>
+                <Text style={{ fontSize: 13 }}>🕒</Text>
+                <Text style={[styles.dateTimeText, { color: theme.subText }]}>{item.dateTime}</Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+                <TouchableOpacity
+                  style={[styles.passBtn, { backgroundColor: theme.primary }]}
+                  onPress={() => setSelectedPass(item)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.passBtnText}>🎟️ View Pass</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.manageBtn, { backgroundColor: theme.surfaceLow }]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.manageBtnText, { color: theme.text }]}>Manage</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+            <Text style={{ color: theme.subText, fontSize: 14 }}>No past bookings found</Text>
+          </View>
+        )}
       </ScrollView>
 
-      {/* Search Input Bar */}
-      <View style={[styles.searchBox, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
-        <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
-        <TextInput
-          style={[styles.searchInput, { color: theme.inputText }]}
-          placeholder="Search by turf name, area (DHA, Gulberg) or ground type"
-          placeholderTextColor={theme.subText}
-          value={searchQuery}
-          onChangeText={(txt) => {
-            setSearchQuery(txt);
-            searchOsmPakistan(txt, selectedCity.name);
-          }}
-        />
-        {searchQuery !== '' && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Text style={{ color: theme.subText, fontSize: 16, paddingHorizontal: 6 }}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* QR Pass Modal */}
+      {selectedPass && (
+        <Modal transparent animationType="fade" visible={!!selectedPass}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalBox, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Match Slot Confirmed!</Text>
+              <Text style={[styles.modalSub, { color: theme.subText }]}>Apex Athletics • Automated Kiosk Pass</Text>
 
-      {/* Mode 1: Instant Booking View (Original intact) */}
-      {viewMode === 'BOOKING' ? (
-        <View>
-          {/* Registered Courts Selector */}
-          <Text style={[styles.sectionHeader, { color: theme.text }]}>Registered SportsAdda Courts</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-            {filteredCourts.map((court) => (
+              <View style={styles.qrContainer}>
+                <Image source={{ uri: selectedPass.qrCode }} style={styles.qrImage} />
+              </View>
+
+              <Text style={[styles.passIdText, { color: theme.subText, backgroundColor: theme.surfaceLow }]}>
+                Pass ID: {selectedPass.id}
+              </Text>
+
               <TouchableOpacity
-                key={court.id}
-                style={[
-                  styles.courtChip,
-                  { backgroundColor: theme.cardBg, borderColor: theme.border },
-                  selectedCourt?.id === court.id && { borderColor: theme.accent, backgroundColor: theme.badgeBg }
-                ]}
-                onPress={() => setSelectedCourt(court)}
+                style={[styles.closeModalBtn, { backgroundColor: theme.primary }]}
+                onPress={() => setSelectedPass(null)}
               >
-                <Text style={{ fontSize: 18, marginRight: 6 }}>
-                  {court.sport_type === 'CRICKET' ? '🏏' : court.sport_type === 'PADEL' ? '🎾' : '⚽'}
-                </Text>
-                <View>
-                  <Text style={[styles.courtName, { color: theme.text }]}>{court.court_name}</Text>
-                  <Text style={[styles.courtRate, { color: theme.accent }]}>Rs. {court.hourly_rate * 70}/hr</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Slots Grid */}
-          <Text style={[styles.sectionHeader, { color: theme.text }]}>
-            Hourly Slots for {selectedCourt ? selectedCourt.court_name : 'Selected Court'}
-          </Text>
-
-          {loading ? (
-            <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 20 }} />
-          ) : error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>⚠️ {error}</Text>
-              <TouchableOpacity style={[styles.retryBtn, { backgroundColor: theme.accent }]} onPress={fetchArenas}>
-                <Text style={styles.retryText}>🔄 Retry Connection</Text>
+                <Text style={styles.closeModalText}>Done</Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            <View style={styles.slotsGrid}>
-              {slots.map((s) => (
-                <TouchableOpacity
-                  key={s.hour}
-                  disabled={s.isBooked}
-                  style={[
-                    styles.slotCard,
-                    { backgroundColor: theme.cardBg, borderColor: theme.border },
-                    s.isBooked && styles.bookedSlot,
-                    s.isPeak && !s.isBooked && styles.peakSlot
-                  ]}
-                  onPress={() => handleBookSlot(s)}
-                >
-                  <Text style={[styles.slotTime, { color: theme.text }, s.isBooked && { color: theme.subText }]}>
-                    {s.timeLabel}
-                  </Text>
-                  <View style={styles.slotFooter}>
-                    <Text style={[styles.slotPrice, { color: theme.accent }, s.isBooked && { color: theme.subText }]}>
-                      Rs. {s.rate ? Math.round(s.rate * 70) : 3500}
-                    </Text>
-                    {s.isPeak && !s.isBooked && <Text style={styles.peakLabel}>⚡ PEAK</Text>}
-                    {s.isBooked && <Text style={{ fontSize: 10, color: theme.subText, fontWeight: 'bold' }}>RESERVED</Text>}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-      ) : (
-        /* Mode 2: ALL Courts & Grounds */
-        <View>
-          <Text style={[styles.sectionHeader, { color: theme.text }]}>All Venues & Turfs Near {selectedCity.name}</Text>
-          {searchingOsm && <ActivityIndicator color={theme.accent} style={{ marginBottom: 12 }} />}
-
-          {/* Registered SportsAdda Venues Card */}
-          {allCourts.map((c) => {
-            const dist = calculateDistance(selectedCity.lat, selectedCity.lng, c.latitude, c.longitude);
-            return (
-              <View key={c.id} style={[styles.allVenueCard, styles.partnerCard, { backgroundColor: theme.cardBg, borderColor: theme.accent }]}>
-                <View style={styles.venueHeader}>
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.badgeRow}>
-                      <View style={[styles.partnerBadge, { backgroundColor: theme.badgeBg }]}>
-                        <Text style={[styles.partnerBadgeText, { color: theme.accent }]}>✅ PARTNER (INSTANT BOOK)</Text>
-                      </View>
-                      <Text style={styles.distText}>📏 {dist} km away</Text>
-                    </View>
-                    <Text style={[styles.venueName, { color: theme.text }]}>{c.court_name}</Text>
-                    <Text style={[styles.venueAddress, { color: theme.subText }]}>{c.arenaName} • {c.arenaAddress}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.venueActionRow}>
-                  <Text style={[styles.venueRateText, { color: theme.accent }]}>Rs. {c.hourly_rate * 70}/hr</Text>
-                  <TouchableOpacity
-                    style={[styles.directionsBtn, { backgroundColor: theme.accent }]}
-                    onPress={() => openGoogleMapsDirections(c.latitude, c.longitude, c.court_name)}
-                  >
-                    <Text style={styles.directionsBtnText}>🧭 Google Maps Route</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
-
-          {/* OpenMap Grounds / Non-Registered Public Turfs */}
-          {osmResults.map((item) => {
-            const itemLat = parseFloat(item.lat);
-            const itemLng = parseFloat(item.lon);
-            const dist = calculateDistance(selectedCity.lat, selectedCity.lng, itemLat, itemLng);
-            const titleName = item.name || item.display_name.split(',')[0];
-
-            return (
-              <View key={item.place_id} style={[styles.allVenueCard, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-                <View style={styles.venueHeader}>
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.badgeRow}>
-                      <View style={styles.openGroundBadge}>
-                        <Text style={styles.openGroundBadgeText}>🌐 MAP VENUE / OPEN GROUND</Text>
-                      </View>
-                      <Text style={styles.distText}>📏 {dist} km away</Text>
-                    </View>
-                    <Text style={[styles.venueName, { color: theme.text }]}>{titleName}</Text>
-                    <Text style={[styles.venueAddress, { color: theme.subText }]} numberOfLines={2}>{item.display_name}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.venueActionRow}>
-                  <Text style={{ color: theme.subText, fontSize: 11, fontWeight: '600' }}>Open Public Arena</Text>
-                  <TouchableOpacity
-                    style={[styles.directionsBtn, { backgroundColor: '#06b6d4' }]}
-                    onPress={() => openGoogleMapsDirections(itemLat, itemLng, titleName)}
-                  >
-                    <Text style={[styles.directionsBtnText, { color: '#000' }]}>🧭 Google Maps Route</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+          </View>
+        </Modal>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  title: { fontSize: 24, fontWeight: '800' },
-  subtitle: { fontSize: 12, marginBottom: 14 },
-  modeToggleRow: {
+  container: {
+    flex: 1
+  },
+  tabContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 14
+  },
+  tabBar: {
     flexDirection: 'row',
-    borderRadius: 14,
     padding: 4,
-    marginBottom: 16,
-    borderWidth: 1
+    borderRadius: 16
   },
-  modeTab: {
+  tabBtn: {
     flex: 1,
     paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10
-  },
-  modeTabText: {
-    fontSize: 12,
-    fontWeight: '700'
-  },
-  cityChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    borderWidth: 1
-  },
-  cityChipText: {
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 14,
-    borderWidth: 1
+    alignItems: 'center'
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 13
-  },
-  courtChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
-    marginRight: 10,
-    borderWidth: 1
-  },
-  courtName: { fontSize: 13, fontWeight: '700' },
-  courtRate: { fontSize: 11, fontWeight: '600' },
-  sectionHeader: { fontSize: 15, fontWeight: '800', marginBottom: 10, marginTop: 4 },
-  slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  slotCard: {
-    width: '48%',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1
-  },
-  bookedSlot: { opacity: 0.5 },
-  peakSlot: { borderColor: 'rgba(245,158,11,0.5)', backgroundColor: 'rgba(245,158,11,0.08)' },
-  slotTime: { fontSize: 14, fontWeight: '800' },
-  slotFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  slotPrice: { fontWeight: '800', fontSize: 13 },
-  peakLabel: { color: '#f59e0b', fontSize: 9, fontWeight: '900' },
-  errorContainer: { alignItems: 'center', marginTop: 30, padding: 16 },
-  errorText: { color: '#ef4444', fontSize: 14, fontWeight: '600', marginBottom: 12, textAlign: 'center' },
-  retryBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
-  retryText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  allVenueCard: {
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1
-  },
-  partnerCard: {},
-  venueHeader: { marginBottom: 10 },
-  badgeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6
-  },
-  partnerBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6
-  },
-  partnerBadgeText: {
-    fontSize: 10,
+  tabText: {
+    fontSize: 13,
     fontWeight: '800'
   },
-  openGroundBadge: {
-    backgroundColor: 'rgba(6, 182, 212, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6
+  bookingCard: {
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 14
   },
-  openGroundBadgeText: {
-    color: '#22d3ee',
-    fontSize: 10,
-    fontWeight: '800'
+  iconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  distText: {
-    color: '#f59e0b',
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  venueName: {
+  cardTitle: {
     fontSize: 16,
     fontWeight: '800'
   },
-  venueAddress: {
-    fontSize: 11,
-    marginTop: 2
+  cardSub: {
+    fontSize: 12,
+    marginTop: 1
   },
-  venueActionRow: {
+  statusTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8
+  },
+  statusText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5
+  },
+  dateRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
-    paddingTop: 10,
-    marginTop: 4
+    gap: 6,
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 12
   },
-  venueRateText: {
+  dateTimeText: {
+    fontSize: 11,
+    fontWeight: '600'
+  },
+  passBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 14,
+    alignItems: 'center'
+  },
+  passBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  manageBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 14,
+    alignItems: 'center'
+  },
+  manageBtnText: {
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  modalBox: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center'
+  },
+  modalTitle: {
+    fontSize: 20,
     fontWeight: '800',
-    fontSize: 14
+    textAlign: 'center'
   },
-  directionsBtn: {
+  modalSub: {
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 16,
+    textAlign: 'center'
+  },
+  qrContainer: {
+    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    marginBottom: 16
+  },
+  qrImage: {
+    width: 160,
+    height: 160
+  },
+  passIdText: {
+    fontSize: 11,
+    fontFamily: 'monospace',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginBottom: 16
   },
-  directionsBtnText: {
-    color: '#000',
-    fontWeight: '800',
-    fontSize: 12
+  closeModalBtn: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: 'center'
+  },
+  closeModalText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800'
   }
 });

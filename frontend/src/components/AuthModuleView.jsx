@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, Shield, Crown, Award, LogIn, LogOut, KeyRound, Sparkles, Activity, Lock, User, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { getPlayerPhoto } from '../utils/playerPhotos';
 
 export default function AuthModuleView() {
+  console.log('AuthModuleView rendered');
   const [currentUser, setCurrentUser] = useState(null);
   const [accessToken, setAccessToken] = useState(localStorage.getItem('sportsadda_token') || null);
   const [profiles, setProfiles] = useState([]);
@@ -348,20 +350,18 @@ export default function AuthModuleView() {
         <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', marginBottom: '32px', border: '2px solid #10b981' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <div style={{
-                width: '60px',
-                height: '60px',
-                borderRadius: '50%',
-                background: currentUser.role === 'INDOOR_OWNER' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #10b981, #06b6d4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.5rem',
-                fontWeight: 800,
-                color: '#fff'
-              }}>
-                {currentUser.role === 'INDOOR_OWNER' ? '🏢' : `#${currentUser.jersey_number || 10}`}
-              </div>
+              <img
+                src={getPlayerPhoto(currentUser, 0)}
+                alt={currentUser.display_name}
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '2px solid #10b981',
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                }}
+              />
               <div>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>
                   {currentUser.display_name} <span style={{ fontSize: '0.85rem', color: '#10b981', marginLeft: '6px' }}>(Your Account)</span>
@@ -507,26 +507,23 @@ export default function AuthModuleView() {
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading profiles...</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-              {profiles.map((p) => {
+              {profiles.map((p, idx) => {
                 const isSelf = currentUser && currentUser.user_id === p.user_id;
                 return (
                   <div key={p.user_id} className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: isSelf ? '2px solid #10b981' : '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <div style={{
-                          width: '44px',
-                          height: '44px',
-                          borderRadius: '50%',
-                          background: isSelf ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'rgba(255,255,255,0.1)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '1.1rem',
-                          fontWeight: 800,
-                          color: '#fff'
-                        }}>
-                          #{p.jersey_number || '0'}
-                        </div>
+                        <img
+                          src={getPlayerPhoto(p, idx)}
+                          alt={p.display_name}
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: isSelf ? '2px solid #10b981' : '1px solid var(--border-color)'
+                          }}
+                        />
                         <div>
                           <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
                             {p.display_name} {isSelf && <span style={{ fontSize: '0.75rem', color: '#10b981' }}>(You)</span>}

@@ -64,7 +64,7 @@ export default function CricketLiveModal({ visible, onClose }) {
   const handleShareMatch = async (matchTitle, scoreStr, shareUrl) => {
     try {
       await Share.share({
-        message: `🏏 SportsAdda Live Scoreboard:\n${matchTitle}\nScore: ${scoreStr}\nWatch Live Updates: ${shareUrl || 'https://sportsadda.app'}`
+        message: `🏏 Apex Athletics Live Scoreboard:\n${matchTitle}\nScore: ${scoreStr}\nWatch Live Updates: ${shareUrl || 'https://apexathletics.app'}`
       });
     } catch (error) {
       Alert.alert('Share', matchTitle);
@@ -82,7 +82,7 @@ export default function CricketLiveModal({ visible, onClose }) {
               <View>
                 <Text style={[styles.title, { color: theme.text }]}>Live Cricket & Community Broadcasts</Text>
                 <Text style={[styles.subtitle, { color: theme.subText }]}>
-                  {lastUpdated ? `Updated: ${lastUpdated}` : 'Real-time SportsAdda Feed'}
+                  {lastUpdated ? `Updated: ${lastUpdated}` : 'Real-time Apex Athletics Feed'}
                 </Text>
               </View>
             </View>

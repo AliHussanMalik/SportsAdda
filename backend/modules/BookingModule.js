@@ -11,6 +11,8 @@ function createBookingRouter(pool, io) {
       const query = `
         SELECT a.id AS arena_id, a.name AS arena_name, a.address, a.city, a.hourly_rate AS arena_hourly_rate,
                a.facilities, a.owner_id, a.has_ac, a.has_parking, a.has_cameras, a.has_changing_room, a.has_canteen,
+               (to_jsonb(a)->>'image_url') AS image_url,
+               (to_jsonb(a)->>'gallery_photos') AS gallery_photos,
                c.id AS court_id, c.court_name, c.sport_type, c.hourly_rate
         FROM indoor_arenas a
         LEFT JOIN arena_courts c ON a.id = c.arena_id
@@ -30,6 +32,8 @@ function createBookingRouter(pool, io) {
             hourly_rate: parseFloat(r.arena_hourly_rate || 2500),
             facilities: typeof r.facilities === 'string' ? JSON.parse(r.facilities) : (r.facilities || []),
             owner_id: r.owner_id,
+            image_url: r.image_url || null,
+            gallery_photos: typeof r.gallery_photos === 'string' ? JSON.parse(r.gallery_photos) : (r.gallery_photos || []),
             amenities: {
               ac: r.has_ac,
               parking: r.has_parking,
@@ -50,7 +54,13 @@ function createBookingRouter(pool, io) {
         }
       });
 
-      res.json({ success: true, arenas: Object.values(arenasMap) });
+      let arenas = Object.values(arenasMap);
+      if (req.query.sport && req.query.sport !== 'ALL') {
+        const targetSport = req.query.sport.toUpperCase();
+        arenas = arenas.filter(a => a.courts.some(c => c.sport_type?.toUpperCase() === targetSport));
+      }
+
+      res.json({ success: true, arenas });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
@@ -191,25 +201,62 @@ function createBookingRouter(pool, io) {
   // Create court booking + return QR Code check-in payload
   router.post('/', async (req, res) => {
     try {
-      const { court_id, booked_by_user_id, start_time, end_time, payment_status = 'CONFIRMED' } = req.body;
+      let { court_id, user_id, booked_by_user_id, start_time, end_time, payment_status = 'CONFIRMED', date } = req.body;
+      const targetUserId = booked_by_user_id || user_id;
+
+      // Validate or resolve user_id
+      let finalUserId = targetUserId;
+      if (!finalUserId) {
+        const pRes = await pool.query('SELECT user_id FROM player_profiles LIMIT 1;');
+        if (pRes.rows.length > 0) finalUserId = pRes.rows[0].user_id;
+      }
+
+      // Validate or resolve court_id
+      let finalCourtId = court_id;
+      const cCheck = await pool.query('SELECT id FROM arena_courts WHERE id = $1;', [finalCourtId]).catch(() => ({ rows: [] }));
+      if (!cCheck.rows || cCheck.rows.length === 0) {
+        const cRes = await pool.query('SELECT id FROM arena_courts LIMIT 1;');
+        if (cRes.rows.length > 0) finalCourtId = cRes.rows[0].id;
+      }
+
+      // Parse start and end timestamps
+      const baseDate = date || new Date().toISOString().split('T')[0];
+      let startTs = start_time;
+      let endTs = end_time;
+
+      if (!startTs || typeof startTs === 'string' && !startTs.includes('-')) {
+        startTs = `${baseDate} ${start_time || '18:00:00'}`;
+      }
+      if (!endTs || typeof endTs === 'string' && !endTs.includes('-')) {
+        endTs = `${baseDate} ${end_time || '19:00:00'}`;
+      }
 
       const insertBooking = `
         INSERT INTO court_bookings (court_id, booked_by_user_id, start_time, end_time, payment_status)
-        VALUES ($1, $2, $3, $4, $5)
+        VALUES ($1, $2, $3::timestamp, $4::timestamp, $5)
         RETURNING *;
       `;
       const { rows } = await pool.query(insertBooking, [
-        court_id, booked_by_user_id, start_time, end_time, payment_status
+        finalCourtId, finalUserId, startTs, endTs, payment_status
       ]);
       const newBooking = rows[0];
+
+      // Also create an indoor_cricket_bookings entry if user is customer
+      if (finalUserId) {
+        await pool.query(
+          `INSERT INTO customer_loyalty_log (user_id, booking_id, points_earned)
+           VALUES ($1, $2, 50) ON CONFLICT DO NOTHING;`,
+          [finalUserId, newBooking.id]
+        ).catch(() => {});
+      }
 
       // Generate QR Code Payload JSON string
       const qrPayload = JSON.stringify({
         sportsAddaBookingId: newBooking.id,
-        courtId: court_id,
-        userId: booked_by_user_id,
-        startTime: start_time,
-        endTime: end_time,
+        courtId: finalCourtId,
+        userId: finalUserId,
+        startTime: startTs,
+        endTime: endTs,
         status: payment_status,
         timestamp: new Date().toISOString()
       });
@@ -224,6 +271,7 @@ function createBookingRouter(pool, io) {
         qrPayload
       });
     } catch (err) {
+      console.error('Error in POST /api/bookings:', err);
       res.status(500).json({ success: false, error: err.message });
     }
   });
@@ -290,7 +338,30 @@ function createBookingRouter(pool, io) {
     }
   });
 
-  // 2. Get Indoor Cricket Pitches for an Owner or Arena
+  // 2. Public Get All Indoor Cricket Pitches
+  router.get('/cricket-pitches', async (req, res) => {
+    try {
+      const { arena_id } = req.query;
+      let query = `
+        SELECT p.*, a.name AS arena_name, a.city, (to_jsonb(a)->>'image_url') AS image_url, a.facilities
+        FROM indoor_cricket_pitches p
+        JOIN indoor_arenas a ON p.arena_id = a.id
+      `;
+      const params = [];
+      if (arena_id) {
+        params.push(arena_id);
+        query += ` WHERE p.arena_id = $1`;
+      }
+      query += ` ORDER BY p.created_at DESC;`;
+
+      const { rows } = await pool.query(query, params);
+      res.json({ success: true, pitches: rows });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 3. Get Indoor Cricket Pitches for an Owner or Arena
   router.get('/owner/cricket-pitches', async (req, res) => {
     try {
       const { owner_id, arena_id } = req.query;

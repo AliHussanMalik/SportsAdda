@@ -4,9 +4,11 @@ import { StatusBar } from 'expo-status-bar';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
-import AuthScreen from './screens/AuthScreen';
+import HomeScreen from './screens/HomeScreen';
+import VenueDetailScreen from './screens/VenueDetailScreen';
+import SlotCheckoutScreen from './screens/SlotCheckoutScreen';
 import BookingsScreen from './screens/BookingsScreen';
-import TeamsScreen from './screens/TeamsScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import CricketLiveModal from './components/CricketLiveModal';
 import LiveScoringConsoleModal from './components/LiveScoringConsoleModal';
 import SportsStoreModal from './components/SportsStoreModal';
@@ -14,7 +16,7 @@ import TournamentTreeModal from './components/TournamentTreeModal';
 import SidebarDrawer from './components/SidebarDrawer';
 
 function MainApp() {
-  const [activeTab, setActiveTab] = useState('bookings');
+  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'explore' | 'checkout' | 'bookings' | 'profile'
   const [showSidebar, setShowSidebar] = useState(false);
   const [showLiveCricket, setShowLiveCricket] = useState(false);
   const [showScoringConsole, setShowScoringConsole] = useState(false);
@@ -22,16 +24,38 @@ function MainApp() {
   const [showTournaments, setShowTournaments] = useState(false);
   const { theme, isDark } = useTheme();
 
+  const handleNavigate = (screen) => {
+    setActiveTab(screen);
+  };
+
   const renderScreen = () => {
     switch (activeTab) {
-      case 'profiles':
-        return <AuthScreen />;
+      case 'home':
+        return <HomeScreen onNavigate={handleNavigate} />;
+      case 'explore':
+      case 'venue_detail':
+        return (
+          <VenueDetailScreen
+            onNavigate={handleNavigate}
+            onCheckAvailability={() => setActiveTab('checkout')}
+          />
+        );
+      case 'checkout':
+        return (
+          <SlotCheckoutScreen
+            onNavigate={handleNavigate}
+            onConfirmBooking={() => setActiveTab('bookings')}
+          />
+        );
       case 'bookings':
-        return <BookingsScreen />;
-      case 'teams':
-        return <TeamsScreen />;
+        return <BookingsScreen onNavigate={handleNavigate} />;
+      case 'profile':
+        return <ProfileScreen onLogout={() => {
+            if (logout) logout();
+            setActiveTab('home');
+          }} />;
       default:
-        return <BookingsScreen />;
+        return <HomeScreen onNavigate={handleNavigate} />;
     }
   };
 
@@ -39,12 +63,11 @@ function MainApp() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      {/* Top Header Bar */}
+      {/* Top Header Bar matching Stitch Apex Athletics */}
       <View style={[styles.headerBar, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          {/* Single Hamburger Menu Toggle for Sidebar */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <TouchableOpacity
-            style={[styles.hamburgerBtn, { backgroundColor: theme.badgeBg, borderColor: theme.border }]}
+            style={[styles.hamburgerBtn, { backgroundColor: theme.surfaceLow, borderColor: theme.border }]}
             onPress={() => setShowSidebar(true)}
             activeOpacity={0.7}
           >
@@ -52,16 +75,15 @@ function MainApp() {
           </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={[styles.brandTitle, { color: theme.text }]}>SportsAdda</Text>
-            <View style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 }}>
-              <Text style={{ fontSize: 10, color: theme.accent, fontWeight: '800' }}>PK</Text>
+            <Text style={[styles.brandTitle, { color: theme.primary }]}>Apex Athletics</Text>
+            <View style={{ backgroundColor: 'rgba(0, 82, 255, 0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 }}>
+              <Text style={{ fontSize: 10, color: theme.primary, fontWeight: '800' }}>STITCH</Text>
             </View>
           </View>
         </View>
 
-        {/* Header Right Status Pill */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.accent }} />
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' }} />
           <Text style={{ fontSize: 11, fontWeight: '700', color: theme.subText }}>Online</Text>
         </View>
       </View>
@@ -69,55 +91,58 @@ function MainApp() {
       {/* Main Screen Body */}
       <View style={styles.content}>{renderScreen()}</View>
 
-      {/* Responsive In-Flow Bottom Navigation Bar with Safe Area Offset */}
+      {/* Bottom Sticky Navigation Bar matching Stitch Design */}
       <View style={[styles.navBar, { backgroundColor: theme.navBg, borderTopColor: theme.border }]}>
         <TouchableOpacity
-          style={[styles.navItem, activeTab === 'profiles' && { backgroundColor: theme.badgeBg }]}
-          onPress={() => setActiveTab('profiles')}
+          style={styles.navItem}
+          onPress={() => setActiveTab('home')}
           activeOpacity={0.7}
         >
-          <Text style={styles.navIcon}>👤</Text>
-          <Text style={[styles.navLabel, { color: activeTab === 'profiles' ? theme.accent : theme.subText }]}>
-            Profiles
+          <Text style={{ fontSize: 18 }}>🏠</Text>
+          <Text style={[styles.navLabel, { color: activeTab === 'home' ? theme.primary : theme.subText }]}>
+            Home
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.navItem, activeTab === 'bookings' && { backgroundColor: theme.badgeBg }]}
+          style={styles.navItem}
+          onPress={() => setActiveTab('explore')}
+          activeOpacity={0.7}
+        >
+          <Text style={{ fontSize: 18 }}>🧭</Text>
+          <Text style={[styles.navLabel, { color: (activeTab === 'explore' || activeTab === 'venue_detail') ? theme.primary : theme.subText }]}>
+            Explore
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navItem}
           onPress={() => setActiveTab('bookings')}
           activeOpacity={0.7}
         >
-          <Text style={styles.navIcon}>🏟️</Text>
-          <Text style={[styles.navLabel, { color: activeTab === 'bookings' ? theme.accent : theme.subText }]}>
+          <Text style={{ fontSize: 18 }}>📅</Text>
+          <Text style={[styles.navLabel, { color: (activeTab === 'bookings' || activeTab === 'checkout') ? theme.primary : theme.subText }]}>
             Bookings
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.navItem, activeTab === 'teams' && { backgroundColor: theme.badgeBg }]}
-          onPress={() => setActiveTab('teams')}
+          style={styles.navItem}
+          onPress={() => setActiveTab('profile')}
           activeOpacity={0.7}
         >
-          <Text style={styles.navIcon}>🛡️</Text>
-          <Text style={[styles.navLabel, { color: activeTab === 'teams' ? theme.accent : theme.subText }]}>
-            Teams
+          <Text style={{ fontSize: 18 }}>👤</Text>
+          <Text style={[styles.navLabel, { color: activeTab === 'profile' ? theme.primary : theme.subText }]}>
+            Profile
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Cricket Live Score Modal */}
+      {/* Modals & Sidebar Drawer */}
       <CricketLiveModal visible={showLiveCricket} onClose={() => setShowLiveCricket(false)} />
-
-      {/* Real-time Conflict-Free Live Scoring Console Modal */}
       <LiveScoringConsoleModal visible={showScoringConsole} onClose={() => setShowScoringConsole(false)} />
-
-      {/* Sports Center Sponsored Ads & Online Delivery Store Modal */}
       <SportsStoreModal visible={showSportsStore} onClose={() => setShowSportsStore(false)} />
-
-      {/* Tournament Tree Graph & Organizer Rating Modal */}
       <TournamentTreeModal visible={showTournaments} onClose={() => setShowTournaments(false)} />
-
-      {/* Navigation Sidebar Drawer */}
       <SidebarDrawer
         visible={showSidebar}
         onClose={() => setShowSidebar(false)}
@@ -175,7 +200,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderTopWidth: 1,
     paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
     paddingHorizontal: 16,
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -185,16 +210,12 @@ const styles = StyleSheet.create({
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 12
-  },
-  navIcon: {
-    fontSize: 16,
-    marginBottom: 2
+    paddingVertical: 4,
+    paddingHorizontal: 12
   },
   navLabel: {
     fontSize: 11,
-    fontWeight: '800'
+    fontWeight: '800',
+    marginTop: 2
   }
 });

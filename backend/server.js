@@ -83,6 +83,17 @@ pool.on('error', (err) => {
   console.error('Unexpected error on idle PostgreSQL client', err);
 });
 
+// Auto-verify DB schema columns for indoor arena pictures
+pool.query(`
+  ALTER TABLE indoor_arenas 
+  ADD COLUMN IF NOT EXISTS image_url TEXT,
+  ADD COLUMN IF NOT EXISTS gallery_photos JSONB DEFAULT '[]'::jsonb;
+`).then(() => {
+  console.log('✅ indoor_arenas image columns schema verified');
+}).catch((err) => {
+  console.warn('ℹ️ Schema verification notice:', err.message);
+});
+
 // Socket.io event listeners
 io.on('connection', (socket) => {
   console.log('Client connected to SportsAdda Live WebSocket:', socket.id);
@@ -147,5 +158,5 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`SportsAdda Production API Server & Engine running on port ${PORT}`);
+  console.log(`Apex Athletics API Server & Engine running on port ${PORT}`);
 });

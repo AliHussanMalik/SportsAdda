@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Shield, Trophy, UserPlus, Trash2 } from 'lucide-react';
 
+const usaFootballLogos = [
+  { name: 'Dallas Cowboys', url: 'https://upload.wikimedia.org/wikipedia/commons/1/15/Dallas_Cowboys.svg' },
+  { name: 'Kansas City Chiefs', url: 'https://upload.wikimedia.org/wikipedia/en/e/e1/Kansas_City_Chiefs_logo.svg' },
+  { name: 'San Francisco 49ers', url: 'https://upload.wikimedia.org/wikipedia/commons/3/3a/San_Francisco_49ers_logo.svg' },
+  { name: 'New England Patriots', url: 'https://upload.wikimedia.org/wikipedia/en/b/b9/New_England_Patriots_logo.svg' },
+  { name: 'Green Bay Packers', url: 'https://upload.wikimedia.org/wikipedia/commons/5/50/Green_Bay_Packers_logo.svg' },
+  { name: 'Philadelphia Eagles', url: 'https://upload.wikimedia.org/wikipedia/en/8/8e/Philadelphia_Eagles_logo.svg' },
+  { name: 'Los Angeles Rams', url: 'https://upload.wikimedia.org/wikipedia/en/8/8a/Los_Angeles_Rams_logo.svg' },
+  { name: 'Miami Dolphins', url: 'https://upload.wikimedia.org/wikipedia/en/3/37/Miami_Dolphins_logo.svg' },
+  { name: 'Seattle Seahawks', url: 'https://upload.wikimedia.org/wikipedia/en/8/8e/Seattle_Seahawks_logo.svg' },
+  { name: 'Pittsburgh Steelers', url: 'https://upload.wikimedia.org/wikipedia/commons/d/de/Pittsburgh_Steelers_logo.svg' }
+];
+
 export default function TeamModuleView() {
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -10,6 +23,7 @@ export default function TeamModuleView() {
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
 
   const [newTeamName, setNewTeamName] = useState('');
+  const [selectedLogoUrl, setSelectedLogoUrl] = useState(usaFootballLogos[0].url);
   const [selectedCaptainId, setSelectedCaptainId] = useState('');
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [selectedRole, setSelectedRole] = useState('PLAYER');
@@ -52,13 +66,22 @@ export default function TeamModuleView() {
     fetchAllPlayers();
   }, []);
 
+  const getTeamLogo = (t, idx) => {
+    if (t?.logo_url && !t.logo_url.includes('dicebear')) return t.logo_url;
+    return usaFootballLogos[(idx || 0) % usaFootballLogos.length].url;
+  };
+
   const handleCreateTeam = async (e) => {
     e.preventDefault();
     try {
       const res = await fetch('/api/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ team_name: newTeamName, captain_id: selectedCaptainId || null })
+        body: JSON.stringify({
+          team_name: newTeamName,
+          logo_url: selectedLogoUrl,
+          captain_id: selectedCaptainId || null
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -114,7 +137,7 @@ export default function TeamModuleView() {
             <Users style={{ color: '#06b6d4' }} /> Team & Roster Management
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Create sports teams, configure rosters, assign squad roles, and view performance history.
+            Create sports teams with USA Football logos, configure rosters, assign squad roles, and view performance history.
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
@@ -125,7 +148,7 @@ export default function TeamModuleView() {
       <div style={{ display: 'grid', gridTemplateColumns: selectedTeam ? '1fr 380px' : '1fr', gap: '24px' }}>
         {/* Teams Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px' }}>
-          {teams.map((t) => (
+          {teams.map((t, idx) => (
             <div
               key={t.id}
               className="glass-panel"
@@ -139,9 +162,9 @@ export default function TeamModuleView() {
             >
               <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '14px' }}>
                 <img
-                  src={t.logo_url}
+                  src={getTeamLogo(t, idx)}
                   alt={t.team_name}
-                  style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#1f2937' }}
+                  style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#0f172a', objectFit: 'contain', padding: '4px' }}
                 />
                 <div>
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fff' }}>{t.team_name}</h3>
@@ -163,8 +186,13 @@ export default function TeamModuleView() {
         {selectedTeam && teamDetails && (
           <div className="glass-panel" style={{ padding: '24px', height: 'fit-content' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Shield size={20} style={{ color: '#06b6d4' }} /> {selectedTeam.team_name}
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img
+                  src={getTeamLogo(selectedTeam, 0)}
+                  alt={selectedTeam.team_name}
+                  style={{ width: '28px', height: '28px', objectFit: 'contain' }}
+                />
+                {selectedTeam.team_name}
               </h3>
               <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => setShowAddPlayerModal(true)}>
                 <UserPlus size={14} /> Add Player
@@ -186,7 +214,7 @@ export default function TeamModuleView() {
                   key={p.player_id}
                   style={{
                     display: 'flex',
-                    justify: 'space-between',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '10px 14px',
                     borderRadius: '10px',
@@ -223,7 +251,7 @@ export default function TeamModuleView() {
       {/* Modal: Create Team */}
       {showCreateModal && (
         <div className="modal-overlay">
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '28px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '460px', padding: '28px' }}>
             <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>Create New Sports Team</h3>
             <form onSubmit={handleCreateTeam} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
@@ -233,9 +261,31 @@ export default function TeamModuleView() {
                   required
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
-                  placeholder="e.g. Thunder Strikers FC"
+                  placeholder="e.g. Dallas Cowboys / Thunder Strikers FC"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff', marginTop: '4px' }}
                 />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>USA Football Team Logo</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
+                  <img
+                    src={selectedLogoUrl}
+                    alt="Logo Preview"
+                    style={{ width: '42px', height: '42px', borderRadius: '8px', background: '#0f172a', padding: '4px', objectFit: 'contain', border: '1px solid #06b6d4' }}
+                  />
+                  <select
+                    value={selectedLogoUrl}
+                    onChange={(e) => setSelectedLogoUrl(e.target.value)}
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#111827', color: '#fff' }}
+                  >
+                    {usaFootballLogos.map((logo) => (
+                      <option key={logo.name} value={logo.url}>
+                        🏈 {logo.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
                 <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Assign Captain</label>
